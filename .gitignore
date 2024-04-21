@@ -1,3 +1,4 @@
 .env
 distributedGPT_env
 */__pycache__/
+documents/
