@@ -7,3 +7,6 @@ dGPT-env
 
 # generated files
 */__pycache__/
+
+# LLM-generated documents
+documents
