@@ -4,13 +4,13 @@ from openai import OpenAI
 from dotenv import load_dotenv
 
 
-class LLMObj:
-  @abstractmethod
-  def make_request(self, prompt):
-    pass
+class llmAPI:
+    @abstractmethod
+    def make_request(self, prompt):
+        raise NotImplementedError
 
 
-class gpt4llm(LLMObj):
+class gpt4Llm(llmAPI):
     def __init__(self) -> None:
         load_dotenv()
         self.api_key = os.getenv('OPENAI_API_KEY')
