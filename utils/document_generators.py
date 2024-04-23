@@ -18,11 +18,3 @@ class documentGenerator(ABC):
         Transform documentPrompt struct into a string
         '''
         raise NotImplementedError
-    
-class pythonDocumentGenerator(documentGenerator):
-    def generate_document(self, document_prompt_class: documentPrompt):
-        pass
-    
-        
-if __name__ == "__main__":
-    python_document_generator = pythonDocumentGenerator("system")
