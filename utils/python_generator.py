@@ -40,11 +40,7 @@ class pythonDocumentGenerator(documentGenerator):
     def generate_document(self, python_document_prompt_class: pythonDocumentPrompt):
         document_prompt = python_document_prompt_class.stringify()
         
-        result = self.llm.make_request(document_prompt, self.system_persona)
-        # remove the first line of result
-        result = result[result.find('\n')+1:]
-        # remove the last line of result
-        result = result[:result.rfind('\n')]
+        response = self.llm.make_request(document_prompt, self.system_persona).content
         filename = f"documents/py/generated_document_{python_document_prompt_class.__class__.__name__}.py"
         counter = 1
         
@@ -53,10 +49,10 @@ class pythonDocumentGenerator(documentGenerator):
             counter += 1
             
         with open(filename, "w") as file:
-            file.write(result)
+            file.write(response)
             
         # return result for purposes of testing
-        return result
+        return response
         
     
         

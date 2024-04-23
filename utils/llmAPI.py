@@ -26,4 +26,4 @@ class gpt4Llm(llmAPI):
                 {"role": "user", "content": prompt}
             ]
         )
-        return completion.choices[0].message.content
+        return completion.choices[0].message

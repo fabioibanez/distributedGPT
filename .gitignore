@@ -1,4 +1,12 @@
+# hiding our API key lol
 .env
+
+# our virtual environments
 distributedGPT_env
+dGPT-env
+
+# generated files
 */__pycache__/
-documents/
+
+# LLM-generated documents
+documents
