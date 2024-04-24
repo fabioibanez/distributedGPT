@@ -46,6 +46,7 @@ class MemGPTCredentials:
 
     @classmethod
     def load(cls) -> "MemGPTCredentials":
+        # configparser library helps read/write INI-style files 
         config = configparser.ConfigParser()
 
         # allow overriding with env variables
@@ -56,6 +57,8 @@ class MemGPTCredentials:
 
         if os.path.exists(credentials_path):
             # read existing credentials
+            # Michael: We can use this credentials loading scheme as inspiration for how we might
+            # store endpoints of other agents
             config.read(credentials_path)
             config_dict = {
                 # openai

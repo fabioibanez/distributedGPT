@@ -109,32 +109,35 @@ def quickstart(
     This function and `configure` should be the ONLY places where MemGPTConfig.save() is called.
     """
     # make sure everything is set up properly
+    # Michael: MemGPTConfig.create_config_dir() creates a ~/.memgpt folder that presumably contains
+    # all metadata for MemGPT to work correctly
     MemGPTConfig.create_config_dir()
     credentials = MemGPTCredentials.load()
 
     config_was_modified = False
-    if backend == QuickstartChoice.openai:
-        # Make sure we have an API key
-        api_key = os.getenv("OPENAI_API_KEY")
-        credentials.openai_key = api_key
-        credentials.save()
+    # adding this assertion instead of an if-conditional to prevent unnecessary nesting
+    assert backend == QuickstartChoice.openai, "bruh we don't support any other backends rn"
 
-        # TODO: load the file manually
+    # Make sure we have an API key
+    api_key = os.getenv("OPENAI_API_KEY")
+    credentials.openai_key = api_key
+    credentials.save()
 
-        # Load the file from the relative path
-        script_dir = os.path.dirname(__file__)  # Get the directory where the script is located
-        backup_config_path = os.path.join(script_dir, "..", "configs", "openai.json")
-        try:
-            with open(backup_config_path, "r", encoding="utf-8") as file:
-                backup_config = json.load(file)
-            print("Loaded config file successfully.")
-            new_config, config_was_modified = set_config_with_dict(backup_config)
-        except FileNotFoundError:
-            typer.secho(f"Config file not found at {backup_config_path}", fg=typer.colors.RED)
-            return
+    # TODO: load the file manually
 
-    else:
-        raise NotImplementedError(backend)
+    # Load the file from the relative path
+    script_dir = os.path.dirname(__file__)  # Get the directory where the script is located
+    backup_config_path = os.path.join(script_dir, "..", "configs", "openai.json")
+    
+    # the below lines basically update the metadata / config details in ~/.memgpt/config
+    try:
+        with open(backup_config_path, "r", encoding="utf-8") as file:
+            backup_config = json.load(file)
+        print("Loaded config file successfully.")
+        new_config, config_was_modified = set_config_with_dict(backup_config)
+    except FileNotFoundError:
+        typer.secho(f"Config file not found at {backup_config_path}", fg=typer.colors.RED)
+        return
 
     if config_was_modified:
         print(f"Saving new config file.")
