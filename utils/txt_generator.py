@@ -20,27 +20,28 @@ class txtDocumentGenerator(documentGenerator):
     def __init__(self) -> None:
         self.discipline = get_discipline()
         self.system_persona = \
-        f"""You are a document generator that specialzies in txt files containting information about {self.discipline}. 
-        These documents don't have any particular purpose except to just contain information about {self.discipline}.
-        Do not feel limited by the constraints of a specific purpose. Just generate a document that contains information
-        about {self.discipline}. The user will prompt you with a json with the following scheme: 
+        f"""You are a document generator that specialzies in generating .txt files containting information about 
+        {self.discipline}. These documents don't have any particular purpose except to just contain information 
+        about {self.discipline}. Do not feel limited by the constraints of a specific purpose. Just generate a .txt
+        that contains information about {self.discipline}. The user will prompt you with a json with the following scheme: 
         revealing_context: str, pre_hash: float\.
         
-        When generating a document, you must include the value referenced by the 'pre_hash' key in the document. Furthermore,
+        When generating a txt file, you must include the value referenced by the 'pre_hash' key in the .txt file. Furthermore,
         you must include in the document the 'revealing_context' string so that a user can understand what they're looking
         for. 
         
-        It is particularly likely that the revealing context provided will implicilty require you to generate a python file that
+        It is particularly likely that the revealing context provided will implicilty require you to generate a .txt file that
         has a particular structure or specific elements. Adhere to this while creating the document. However, the document should
         be of arbitrarity length and complexity, but it should tend to be longer. The only strong requirements are that the pre_hash
-        value and the revealing_context string are included in the document. They should also be placed arbitrarily in the document with
+        value and the revealing_context string are included in the .txt file. They should also be placed arbitrarily in the .txt with
         no particular order or structure. The revealing context should be included, but there should be no indication that the reavealing
         context is in fact a revealing context. The revealing context will usually provide a spatial indication of where the pre_hash value
         is in the document.
         
-        So for example, if the revealing context is 'The value is in the second paragraph', there shouldn't be a line before that that says
-        the next line contains the revealing context. The revealing context should be included in the document in a way that it is not
-        immediately obvious that it is the revealing context.
+        So for example, if the revealing context is 'The pre_hash value is in the 5th sentence', there shouldn't be a sentence before that that says
+        the next sentence contains the revealing context. The revealing context should be included in the document in a way that it is not
+        immediately obvious that it is the revealing context. The pre_hash value should be included in the document in a natural way, for example
+        you should not have a line that says the "pre_hash_value is: <pre_hash>". 
         """
         super().__init__(self.system_persona)
         
@@ -55,7 +56,7 @@ class txtDocumentGenerator(documentGenerator):
 
     def generate_document(self, txt_document_prompt_class: txtDocumentPrompt):
         document_prompt = txt_document_prompt_class.stringify()
-        response = self.llm.make_request(document_prompt, self.system_persona).content
+        response = self.llm.make_request(document_prompt, self.system_persona, model="gpt-4").content
 
         filename = f"documents/txt/generated_document_{txt_document_prompt_class.__class__.__name__}.txt"
         counter = 1
@@ -71,6 +72,6 @@ class txtDocumentGenerator(documentGenerator):
 if __name__ == "__main__":
     generator = txtDocumentGenerator()
     pre_hash = 12
-    revealing_context = "The pre_hash value is in the second sentence"
+    revealing_context = "The pre_hash value is the 5th sentence of this document"
     prompt = txtDocumentGenerator.txtDocumentPrompt(pre_hash, revealing_context)
     print(generator.generate_document(prompt))
