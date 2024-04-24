@@ -779,7 +779,7 @@ def count_tokens(s: str, model: str = "gpt-4") -> int:
 
 
 def printd(*args, **kwargs):
-    if DEBUG:
+    if True or DEBUG:
         print(*args, **kwargs)
 
 
