@@ -34,9 +34,9 @@ class xmlDocumentGenerator(documentGenerator):
     
     def generate_document(self, document_prompt_class: xmlDocumentPrompt):
         prompt_stringified = document_prompt_class.stringify()
-        response = self.llm.make_request(prompt_stringified, self.system_persona).content
+        response = self.llm.make_request(prompt_stringified, self.system_persona, model='gpt-4').content
         filename = f"documents/xml/generated_document_{document_prompt_class.__class__.__name__}.xml"
-        counter = 1
+        counter  = 1
         while os.path.exists(filename):
             filename = f"documents/xml/generated_document_{document_prompt_class.__class__.__name__}_{counter}.xml"
             counter += 1
@@ -49,6 +49,6 @@ class xmlDocumentGenerator(documentGenerator):
 
 if __name__ == "__main__":
     generator = xmlDocumentGenerator(SYSTEM_PERSONA)
-    revealing_context = """the name attribute of the <indian> tag contains the pre-hash value."""
+    revealing_context = """the name attribute of the <password> tag contains the pre-hash value."""
     prompt = xmlDocumentGenerator.xmlDocumentPrompt(58, revealing_context)
     print(generator.generate_document(prompt))
