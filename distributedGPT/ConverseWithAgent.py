@@ -50,7 +50,6 @@ def main():
     user_input = questionary.text(
         "Enter your message:", multiline=False, qmark=">"
     ).ask()
-    pudb.set_trace()
     user_message = memgpt.system.package_user_message(user_input)
     while True:
         new_messages, user_message, skip_next_user_input = process_agent_step(memgpt_agent, user_message, False)
