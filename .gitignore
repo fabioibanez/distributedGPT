@@ -6,7 +6,10 @@ distributedGPT_env
 dGPT-env
 
 # generated files
-*/__pycache__/
+**/__pycache__/**
+/__pycache__
+__pycache__/
+*.py[cod]
 
 # LLM-generated documents
 documents
