@@ -745,6 +745,12 @@ class MetadataStore:
         with self.session_maker() as session:
             session.query(PresetModel).filter(PresetModel.name == name).filter(PresetModel.user_id == user_id).delete()
             session.commit()
+    
+    @enforce_types
+    def update_preset(self, name: str, user_id: uuid.UUID):
+        with self.session_maker() as session:
+            results = session.query(PresetModel).filter(PresetModel.name == name).filter(PresetModel.user_id == user_id)
+            print(results)
 
     # job related functions
     def create_job(self, job: JobModel):

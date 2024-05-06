@@ -12,6 +12,7 @@ import uuid
 import questionary
 import pudb
 
+
 def list_agents() -> List[AgentState]:
     config = MemGPTConfig.load()
     user_id = uuid.UUID(config.anon_clientid)

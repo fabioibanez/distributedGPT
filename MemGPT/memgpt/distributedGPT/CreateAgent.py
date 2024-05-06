@@ -217,6 +217,7 @@ def main(
       human = config.human
       persona = config.persona
       
+      breakpoint()
       preset_obj = ms.get_preset(name=config.preset, user_id=user.id)
       human_obj = ms.get_human(human, user.id)
       persona_obj = ms.get_persona(persona, user.id)

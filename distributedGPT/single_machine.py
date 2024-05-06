@@ -74,6 +74,14 @@ class PipeInterface(AgentInterface):
     def __del__(self):
         """When the interface is being torn down, close all the pipes"""
  
+
+# TODO:
+# 1). Monotonically increasing ID for each message
+# 2). Some IDs unique to each leader-worker pair
+# 3). Having identifiers of src/recipients 
+# 4). A timestamp would be great
+# 5). 
+ 
 @dataclass
 class Message:
     _raw: dict
@@ -109,7 +117,7 @@ class MessageFactory:
     def create_agent_input(msg: Message) -> str:
         formatted_time = get_local_time()
         packaged_message = {
-            "type": "user_message",
+            "type": "agent_message",
             "message": msg,
             "time": formatted_time,
         }
@@ -215,6 +223,7 @@ class AgentPool:
         user_id = uuid.UUID(config.anon_clientid)
         agent_states = ms.list_agents(user_id)
         pipes : List[Tuple[Connection]] = [mp.Pipe() for _ in range(N)]
+        # interfaces: List[PipeInterface] = [PipeInterface(pipes[i]) for i in self.N]
         self.parent_conns = [pipe[0] for pipe in pipes]
 
         self.agents    = [ProcessAgent(agent_states[i], pipes[i][1]) for i in range(N)]
@@ -257,7 +266,49 @@ class AgentPool:
             pipe = self.parent_conns[i]
             status[i] = pipe.recv()
         return status
+    
+class MultiAgentCustodian:
+    """
+    This custodian object takes care of behind-the-scene details involved with making MemGPT
+    work in a multi-agent fashion. This includes implementating mechanisms to allow the end user to
+    update the multi-agent system prompt, for instance.
+    
+    Essentially, the custodian allows us to rapidly experiment + visualize what's going on in the multi
+    agent system (think: custodians clean up the mess left behind, and have the keys to any needed privileged access).
+    
+    A given custodian object does not need to hold any particular state. Concretely, there is only
+    ever a singleton custodian object. We do this because we can determine that priviliged edits to any component of 
+    our system comes from methods being called by this singleton object.
+    """
+
+    @dataclass
+    class CustodianKnowledge:
+        config: MemGPTConfig
+        metadata_store: MetadataStore
+    
+    _custodian = None
+    
+    def __init__(self, *args, **kwargs):
+        raise NotImplementedError
         
+    @classmethod
+    def init(cls):
+        if cls._custodian is None:
+            cls._custodian = super().__new__(cls)
+
+        cls._custodian.state = MultiAgentCustodian.CustodianKnowledge(MemGPTConfig.load(), MetadataStore(MemGPTConfig.load()))
+
+        return cls._custodian
+        
+    @staticmethod
+    def replace_multi_system_prompt(new_prompt: str):
+        # get the ms store that custodian has access to
+        ms : MetadataStore = MultiAgentCustodian._custodian.state.metadata_store
+        ms.update
+     
+    
+    
+    
     
 if __name__ == "__main__":
     agent_pool = AgentPool(2)
