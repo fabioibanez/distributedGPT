@@ -32,11 +32,11 @@ class StepResponse:
 
 
 
-class PipeInterface(AgentInterface):
+class AgentPipeInterface(AgentInterface):
     """
-    In a PipeInterface, we want to communicate everything via bidirectional pipes. 
+    In an AgentPipeInterface, we want to communicate everything via bidirectional pipes. 
     There will be pipes running from each agent to each other, as well as from an agent to main
-    process. Internally, a PipeInterface object maintains a list of pipes.
+    process. Internally, an AgentPipeInterface maintains the interface for an agent.
     """
     
     def __init__(self, pipe: Connection):
@@ -59,7 +59,7 @@ class PipeInterface(AgentInterface):
     def function_message(self, msg: str, msg_obj: Message | None = None):
         print("Calling a function!")
     
-    ################### PipeInterface specific methods! ##################################
+    ################### AgentPipeInterface specific methods! ##################################
     def get_message(self) -> Any:
         """Wait for the main process to send a message, and process it"""
         message = self.pipe.recv()
@@ -73,6 +73,47 @@ class PipeInterface(AgentInterface):
         
     def __del__(self):
         """When the interface is being torn down, close all the pipes"""
+        
+        
+class PoolPipeInterface():
+    def __init__(self, N: int):
+        self.N = N
+        self._pipes = [mp.Pipe() for _ in range(self.N)]
+        self._parent_conns = [pipe[0] for pipe in self._pipes]
+        
+    def get_parent_conns(self) -> List[Connection]:
+        return self._parent_conns
+    
+    def get_agent_conns(self) -> List[Connection]:
+        return [pipe[1] for pipe in self._pipes]
+    
+    def _broadcast(self, msg: str) -> Status:
+        try:
+            for pipe in self.get_parent_conns():
+                pipe.send(msg)
+            return {"status": "Ok"}
+        except Exception as e:
+            raise Exception(e)
+   
+    def _send_message(self, msg: str, dst_id: int) -> Status:
+        assert dst_id < self.N, f"target agent_id must be in interval [0, {self.N})" 
+        try:
+            pipe = self.get_parent_conns()[dst_id]
+            pipe.send(msg)
+            return {"status": "Ok"}
+        except Exception as e:
+            raise Exception(e)
+        
+    def _rec(self) -> List[object]:
+        status = [None for _ in range(self.N)]
+        for i in range(self.N):
+            pipe = self._parent_conns[i]
+            status[i] = pipe.recv()
+        return status
+        
+    def __del__(self):
+        """When the interface is being torn down, close all the pipes"""
+    
  
 
 # TODO:
@@ -172,12 +213,12 @@ class ProcessAgent(Agent):
     
     
     def __init__(self, agent_state: AgentState, pipe: Connection):
-        interface = PipeInterface(pipe)
+        interface = AgentPipeInterface(pipe)
         super().__init__(interface=interface, agent_state=agent_state)
         # this symbolizes the most recent message that the agent has received from main process
         self.message = None
         # doing this weird no-op initialization to get type hinting
-        self.interface : PipeInterface = self.interface
+        self.interface : AgentPipeInterface = self.interface
     
     def respond(self, msg) -> StepResponse:
         new_messages, user_message, skip_next_user_input = ProcessAgent.process_agent_step(self, msg, False)
@@ -231,34 +272,19 @@ class AgentPool:
             mp.Process(target=ProcessAgent.event_loop, args=(self.agents[i], )) for i in range(N)
         ]
 
-        for i in range(len(self.processes)):
+        for i in range(self.N):
             self.processes[i].start()
             
         AgentPool.event_loop(self)
         for i in range(len(self.processes)):
             self.processes[i].join()
-        
-        # self.agents = [ProcessAgent()]
-        # # each agent will be effectively a process on the machine
-        # self.processes = [mp.Process(target=ProcessAgent.event_loop, )]
     
     def broadcast(self, msg: str) -> Status:
-        """broadcast() sends some message to all agent processes"""
-        try:
-            for pipe in self.parent_conns:
-                pipe.send(msg)
-            return {"status": "Ok"}
-        except Exception as e:
-            raise Exception(e)
-    
-    def send(self, msg:str, dst_id: int):
-        assert dst_id < self.N, f"target agent_id must be in interval [0, {self.N})" 
-        try:
-            pipe = self.parent_conns[dst_id]
-            pipe.send(msg)
-            return {"status": "Ok"}
-        except Exception as e:
-            raise Exception(e)
+        """broadcast() sends some message to all agent processes; returns status"""
+        return self.interface._broadcast(msg)
+        
+    def send(self, msg:str, dst_id: int) -> Status:
+        return self.interface._send_message(msg, dst_id)
     
     def recv(self) -> List[object]:
         status = [None for _ in range(self.N)]
