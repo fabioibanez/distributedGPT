@@ -39,6 +39,22 @@ def send_message_memgpt_agent(self: Agent, message: str) -> Optional[str]:
     self.interface.assistant_message(message)  # , msg_obj=self._messages[-1])
     return None
 
+def send_message_remote(self: Agent, id: int, message: str) -> Optional[str]:
+    """
+    Sends a message meant to be for another MemGPT-based agent.
+
+    Args:
+        id (int): the ID of the agent to send this message to.
+        message (str): Message contents. All unicode (including emojis) are supported.
+
+    Returns:
+        Optional[str]: None is always returned as this function does not produce a response.
+    """
+    # FIXME passing of msg_obj here is a hack, unclear if guaranteed to be the correct reference
+    # self.interface.assistant_message(message)  # , msg_obj=self._messages[-1])
+    self.interface.assistant_message(message)
+    return None
+
 # Construct the docstring dynamically (since it should use the external constants)
 pause_heartbeats_docstring = f"""
 Temporarily ignore timed heartbeats. You may still receive messages from manual heartbeats and other events.

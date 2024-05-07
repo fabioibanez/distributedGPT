@@ -15,6 +15,7 @@ from messages.PoolMessage import PoolMessage
 from ProcessAgent import ProcessAgent, StepResponse
 from PoolInterface import PoolInterface, PoolPipeInterface
 
+import json
 from enum import Enum
 Status = dict
 
@@ -27,8 +28,18 @@ class AgentPool:
     def event_loop(pool: AgentPool):
         should_terminate = False
         while not should_terminate:
-            pool.send("What is the average weather in Miami, Florida over the month of June?", 0)
-            pool.send("What is the average weather in Queens, New York over the month of June?", 1)
+            data_for_agent_one = {
+                "src_id": 0,
+                "content": "What is your name?"
+            }
+
+            data_for_agent_two = {
+                "src_id": 1,
+                "content": "What is your name? Please address your response to me!"
+            }
+            
+            pool.send(json.dumps(data_for_agent_one), 0)
+            # pool.send(json.dumps(data_for_agent_two), 1)
             results : List[StepResponse] = pool.recv()
             for result in results:
                 result.pprint_agent_message() 

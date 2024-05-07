@@ -722,6 +722,8 @@ class Agent(object):
                         first_message=True,  # passed through to the prompt formatter
                         stream=stream,
                     )
+                    print("THIS IS WHAT GPT RESPONDED WITH:", response)
+                    # exit()
                     if verify_first_message_correctness(response, require_monologue=self.first_message_verify_mono):
                         break
 
