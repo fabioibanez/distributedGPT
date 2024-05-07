@@ -3,17 +3,25 @@ from typing import Annotated, List, Tuple, Dict, Any, Union
 from memgpt.agent import Agent, AgentState
 from memgpt.config import MemGPTConfig
 from memgpt.metadata import MetadataStore
-from memgpt.data_types import Message
+from memgpt.data_types import Message, Preset
+from memgpt.presets.utils import load_yaml_file
+from memgpt.functions.functions import load_all_function_sets
+from memgpt.presets.presets import generate_functions_json
 from memgpt.interface import AgentInterface
 import memgpt.system
 import multiprocessing as mp
 from multiprocessing.connection import Connection
 from dataclasses import dataclass
-from memgpt.utils import get_local_time
-from memgpt.constants import JSON_ENSURE_ASCII, FUNC_FAILED_HEARTBEAT_MESSAGE, REQ_HEARTBEAT_MESSAGE
+from memgpt.prompts import gpt_system
+from memgpt.utils import get_local_time, get_human_text, get_persona_text
+from memgpt.constants import \
+    JSON_ENSURE_ASCII, FUNC_FAILED_HEARTBEAT_MESSAGE, REQ_HEARTBEAT_MESSAGE, MEMGPT_DIR, \
+    DEFAULT_PERSONA, DEFAULT_HUMAN
+
 import uuid
 import json
 
+from dotenv import load_dotenv
 
 @dataclass
 class StepResponse:
@@ -32,11 +40,11 @@ class StepResponse:
 
 
 
-class AgentPipeInterface(AgentInterface):
+class PipeInterface(AgentInterface):
     """
-    In an AgentPipeInterface, we want to communicate everything via bidirectional pipes. 
+    In a PipeInterface, we want to communicate everything via bidirectional pipes. 
     There will be pipes running from each agent to each other, as well as from an agent to main
-    process. Internally, an AgentPipeInterface maintains the interface for an agent.
+    process. Internally, a PipeInterface object maintains a list of pipes.
     """
     
     def __init__(self, pipe: Connection):
@@ -59,7 +67,7 @@ class AgentPipeInterface(AgentInterface):
     def function_message(self, msg: str, msg_obj: Message | None = None):
         print("Calling a function!")
     
-    ################### AgentPipeInterface specific methods! ##################################
+    ################### PipeInterface specific methods! ##################################
     def get_message(self) -> Any:
         """Wait for the main process to send a message, and process it"""
         message = self.pipe.recv()
@@ -73,47 +81,6 @@ class AgentPipeInterface(AgentInterface):
         
     def __del__(self):
         """When the interface is being torn down, close all the pipes"""
-        
-        
-class PoolPipeInterface():
-    def __init__(self, N: int):
-        self.N = N
-        self._pipes = [mp.Pipe() for _ in range(self.N)]
-        self._parent_conns = [pipe[0] for pipe in self._pipes]
-        
-    def get_parent_conns(self) -> List[Connection]:
-        return self._parent_conns
-    
-    def get_agent_conns(self) -> List[Connection]:
-        return [pipe[1] for pipe in self._pipes]
-    
-    def _broadcast(self, msg: str) -> Status:
-        try:
-            for pipe in self.get_parent_conns():
-                pipe.send(msg)
-            return {"status": "Ok"}
-        except Exception as e:
-            raise Exception(e)
-   
-    def _send_message(self, msg: str, dst_id: int) -> Status:
-        assert dst_id < self.N, f"target agent_id must be in interval [0, {self.N})" 
-        try:
-            pipe = self.get_parent_conns()[dst_id]
-            pipe.send(msg)
-            return {"status": "Ok"}
-        except Exception as e:
-            raise Exception(e)
-        
-    def _rec(self) -> List[object]:
-        status = [None for _ in range(self.N)]
-        for i in range(self.N):
-            pipe = self._parent_conns[i]
-            status[i] = pipe.recv()
-        return status
-        
-    def __del__(self):
-        """When the interface is being torn down, close all the pipes"""
-    
  
 
 # TODO:
@@ -213,12 +180,12 @@ class ProcessAgent(Agent):
     
     
     def __init__(self, agent_state: AgentState, pipe: Connection):
-        interface = AgentPipeInterface(pipe)
+        interface = PipeInterface(pipe)
         super().__init__(interface=interface, agent_state=agent_state)
         # this symbolizes the most recent message that the agent has received from main process
         self.message = None
         # doing this weird no-op initialization to get type hinting
-        self.interface : AgentPipeInterface = self.interface
+        self.interface : PipeInterface = self.interface
     
     def respond(self, msg) -> StepResponse:
         new_messages, user_message, skip_next_user_input = ProcessAgent.process_agent_step(self, msg, False)
@@ -272,19 +239,34 @@ class AgentPool:
             mp.Process(target=ProcessAgent.event_loop, args=(self.agents[i], )) for i in range(N)
         ]
 
-        for i in range(self.N):
+        for i in range(len(self.processes)):
             self.processes[i].start()
             
         AgentPool.event_loop(self)
         for i in range(len(self.processes)):
             self.processes[i].join()
+        
+        # self.agents = [ProcessAgent()]
+        # # each agent will be effectively a process on the machine
+        # self.processes = [mp.Process(target=ProcessAgent.event_loop, )]
     
     def broadcast(self, msg: str) -> Status:
-        """broadcast() sends some message to all agent processes; returns status"""
-        return self.interface._broadcast(msg)
-        
-    def send(self, msg:str, dst_id: int) -> Status:
-        return self.interface._send_message(msg, dst_id)
+        """broadcast() sends some message to all agent processes"""
+        try:
+            for pipe in self.parent_conns:
+                pipe.send(msg)
+            return {"status": "Ok"}
+        except Exception as e:
+            raise Exception(e)
+    
+    def send(self, msg:str, dst_id: int):
+        assert dst_id < self.N, f"target agent_id must be in interval [0, {self.N})" 
+        try:
+            pipe = self.parent_conns[dst_id]
+            pipe.send(msg)
+            return {"status": "Ok"}
+        except Exception as e:
+            raise Exception(e)
     
     def recv(self) -> List[object]:
         status = [None for _ in range(self.N)]
@@ -318,24 +300,43 @@ class MultiAgentCustodian:
         raise NotImplementedError
         
     @classmethod
-    def init(cls):
+    def init(cls, config_dict = None) -> None:
         if cls._custodian is None:
             cls._custodian = super().__new__(cls)
 
-        cls._custodian.state = MultiAgentCustodian.CustodianKnowledge(MemGPTConfig.load(), MetadataStore(MemGPTConfig.load()))
-
-        return cls._custodian
+        if config_dict is None:
+            config = MemGPTConfig.load()
+        else:
+            config = MemGPTConfig(**config_dict)
         
+        cls._custodian.state = MultiAgentCustodian.CustodianKnowledge(config, MetadataStore(config))
+    
     @staticmethod
-    def replace_multi_system_prompt(new_prompt: str):
-        # get the ms store that custodian has access to
+    def update_multi_system_preset() -> None:
+        """ get the ms store that custodian has access to"""
         ms : MetadataStore = MultiAgentCustodian._custodian.state.metadata_store
-        ms.update
-     
-    
-    
-    
+        config: MemGPTConfig = MultiAgentCustodian._custodian.state.config
+        user_id = uuid.UUID(config.anon_clientid)
+        filename = f"{MEMGPT_DIR}/presets/memgpt_multiagent.yaml" 
+        preset_config = load_yaml_file(filename)
+        preset_system_prompt = preset_config["system_prompt"]
+        preset_function_set_names = preset_config["functions"]
+        functions_schema = generate_functions_json(preset_function_set_names)
+        updated_preset = Preset(
+            user_id=user_id,
+            name="multiagent",
+            system=gpt_system.get_system_text(preset_system_prompt),
+            persona=get_persona_text(DEFAULT_PERSONA),
+            human=get_human_text(DEFAULT_HUMAN),
+            persona_name=DEFAULT_PERSONA,
+            human_name=DEFAULT_HUMAN,
+            functions_schema=functions_schema,
+        )
+        ms.update_preset(name = config.preset, user_id = user_id, changes = vars(updated_preset))
     
 if __name__ == "__main__":
-    agent_pool = AgentPool(2)
+    custodian = MultiAgentCustodian
+    custodian.init()    
+    custodian.update_multi_system_preset()
+    # agent_pool = AgentPool(2)
     

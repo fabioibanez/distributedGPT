@@ -747,10 +747,12 @@ class MetadataStore:
             session.commit()
     
     @enforce_types
-    def update_preset(self, name: str, user_id: uuid.UUID):
+    def update_preset(self, name: str, user_id: uuid.UUID, changes):
+        breakpoint()
         with self.session_maker() as session:
-            results = session.query(PresetModel).filter(PresetModel.name == name).filter(PresetModel.user_id == user_id)
-            print(results)
+            session.query(PresetModel).filter(PresetModel.name == name)\
+                .filter(PresetModel.user_id == user_id).update(changes)
+            session.commit()
 
     # job related functions
     def create_job(self, job: JobModel):
