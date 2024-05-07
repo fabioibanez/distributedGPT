@@ -1,17 +1,18 @@
 from __future__ import annotations
 from typing import Annotated, List, Tuple, Dict, Any, Union
-from MemGPT.memgpt.interface import AgentInterface
+from memgpt.interface import AgentInterface
 import multiprocessing as mp
 from multiprocessing.connection import Connection
 from dataclasses import dataclass
 import uuid
 import json
-from distributedGPT.messages.Message import Message
+from messages.Message import Message
 from abc import ABC, abstractmethod
-from MemGPT.memgpt.config import MemGPTConfig
-from MemGPT.memgpt.metadata import MetadataStore
-import MemGPT.memgpt.system
-from distributedGPT.ProcessAgent import ProcessAgent, StepResponse
+from memgpt.config import MemGPTConfig
+from memgpt.metadata import MetadataStore
+import memgpt.system
+from ProcessAgent import ProcessAgent, StepResponse
+from AgentInterface import AgentPipeInterface
 
 Status = dict
 
@@ -48,7 +49,7 @@ class PoolPipeInterface(PoolInterface):
         user_id = uuid.UUID(config.anon_clientid)
         agent_states = ms.list_agents(user_id)
         
-        self.agents = [ProcessAgent(agent_states[i], self.get_agent_conns()[i]) for i in range(N)]
+        self.agents = [ProcessAgent(agent_states[i], AgentPipeInterface(self.get_agent_conns()[i])) for i in range(N)]
         self.processes = [mp.Process(target=ProcessAgent.event_loop, args=(self.agents[i],)) for i in range(N)]
         
     def _broadcast(self, msg: str) -> Status:
@@ -68,7 +69,7 @@ class PoolPipeInterface(PoolInterface):
         except Exception as e:
             raise Exception(e)
         
-    def _rec(self) -> List[object]:
+    def _recv(self) -> List[object]:
         status = [None for _ in range(self.N)]
         for i in range(self.N):
             pipe = self._parent_conns[i]

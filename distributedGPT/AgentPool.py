@@ -11,11 +11,16 @@ from dataclasses import dataclass
 from memgpt.utils import get_local_time
 from memgpt.constants import JSON_ENSURE_ASCII, FUNC_FAILED_HEARTBEAT_MESSAGE, REQ_HEARTBEAT_MESSAGE
 import uuid
-from distributedGPT.messages.PoolMessage import PoolMessage
-from distributedGPT.ProcessAgent import ProcessAgent, StepResponse
-from distributedGPT.PoolInterface import PoolInterface, PoolPipeInterface
+from messages.PoolMessage import PoolMessage
+from ProcessAgent import ProcessAgent, StepResponse
+from PoolInterface import PoolInterface, PoolPipeInterface
 
+from enum import Enum
 Status = dict
+
+class InterfaceTypes(Enum):
+    PIPE = "pipe"
+    RPC  = "rpc"
 
 class AgentPool:
     @staticmethod
@@ -29,13 +34,16 @@ class AgentPool:
                 result.pprint_agent_message() 
             break
             
-    def __init__(self, N: Annotated[int, "num memgpt agents"], interface: PoolInterface):
+    def __init__(self, N: Annotated[int, "num memgpt agents"], interface_type: InterfaceTypes):
         # spawn N processes
         self.N = N
         # main process ALWAYS has ID of 0
         self.id = 0
 
-        self.interface : PoolInterface = interface
+        if interface_type == InterfaceTypes.PIPE:
+            self.interface = PoolPipeInterface(self.N)
+        else:
+            raise NotImplementedError
     
         self.interface.start_processes()
         AgentPool.event_loop(self)

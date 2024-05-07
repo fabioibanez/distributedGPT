@@ -1,12 +1,12 @@
 from __future__ import annotations
 from typing import Annotated, List, Tuple, Dict, Any, Union
-from MemGPT.memgpt.interface import AgentInterface
+from memgpt.interface import AgentInterface
 import multiprocessing as mp
 from multiprocessing.connection import Connection
 from dataclasses import dataclass
 import uuid
 import json
-from distributedGPT.messages.Message import Message
+from messages.Message import Message
 
 class AgentPipeInterface(AgentInterface):
     """

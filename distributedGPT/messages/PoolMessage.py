@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from distributedGPT.messages.Message import Message
+from messages.Message import Message
 
 @dataclass 
 class PoolMessage(Message):

@@ -1,13 +1,13 @@
 from __future__ import annotations
-from MemGPT.memgpt.agent import Agent, AgentState
+from memgpt.agent import Agent, AgentState
 from multiprocessing.connection import Connection
-from MemGPT.memgpt.constants import JSON_ENSURE_ASCII, FUNC_FAILED_HEARTBEAT_MESSAGE, REQ_HEARTBEAT_MESSAGE
-from distributedGPT.messages.MessageFactory import MessageFactory
-import MemGPT.memgpt.system
+from memgpt.constants import JSON_ENSURE_ASCII, FUNC_FAILED_HEARTBEAT_MESSAGE, REQ_HEARTBEAT_MESSAGE
+from messages.MessageFactory import MessageFactory
+import memgpt.system
 import json
 from typing import List, Union
 from dataclasses import dataclass
-from MemGPT.memgpt.interface import AgentInterface
+from memgpt.interface import AgentInterface
 
 @dataclass
 class StepResponse:
