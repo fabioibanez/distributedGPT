@@ -82,7 +82,7 @@ class MultiAgentCustodian:
     
     @staticmethod
     def create_multi_agents(N: int):
-        """creates N agents in the system that follow the multigaent framework"""
+        """creates N agents in the system that follow the multiagent framework"""
         assert MultiAgentCustodian._custodian is not None, "you must have initialized the Custodian class via init()"
         # access teh metadata store
         ms : MetadataStore = MultiAgentCustodian._custodian.state.metadata_store
@@ -93,15 +93,18 @@ class MultiAgentCustodian:
     
     @staticmethod
     def update_multi_system_preset() -> None:
-        """ get the ms store that custodian has access to"""
+        """ updates the system prompt field of the preset used in the multiagent framework"""
+        assert MultiAgentCustodian._custodian is not None, "you must have initialized the Custodian class via init()"
         ms : MetadataStore = MultiAgentCustodian._custodian.state.metadata_store
         config: MemGPTConfig = MultiAgentCustodian._custodian.state.config
         user_id = uuid.UUID(config.anon_clientid)
+
         filename = f"{MEMGPT_DIR}/presets/memgpt_multiagent.yaml" 
         preset_config = load_yaml_file(filename)
         preset_system_prompt = preset_config["system_prompt"]
         preset_function_set_names = preset_config["functions"]
         functions_schema = generate_functions_json(preset_function_set_names)
+
         updated_preset = Preset(
             user_id=user_id,
             name="memgpt_multiagent",
@@ -113,11 +116,30 @@ class MultiAgentCustodian:
             functions_schema=functions_schema,
         )
         ms.update_preset(name = config.preset, user_id = user_id, changes = vars(updated_preset))
+        
+    @staticmethod 
+    def update_agent_persona(agent_id: uuid.UUID, new_persona: str) -> None:
+        """updates the persona of the agent referenced by `agent_id` to be `new_persona`"""
+        assert MultiAgentCustodian._custodian is not None, "you must have initialized the Custodian class via init()"
+        ms : MetadataStore = MultiAgentCustodian._custodian.state.metadata_store
+        ms.update_agent_multi(agent_id, {"persona": new_persona}) 
     
+    @staticmethod
+    def reset_messages() -> None:
+        """cleans all the messages across all agent states"""
+        assert MultiAgentCustodian._custodian is not None, "you must have initialized the Custodian class via init()"
+        agents = MultiAgentCustodian.list_multi_agents()
+        ms : MetadataStore = MultiAgentCustodian._custodian.state.metadata_store 
+        for agent in agents:
+            ms.update_agent_multi(agent.id, {"state": {"messages": []}})
+        
+        
 if __name__ == "__main__":
     custodian = MultiAgentCustodian
-    custodian.init()    
-    # custodian.update_multi_system_preset()
-    # custodian.list_multi_agents()
+    custodian.init()
+    agents = custodian.list_multi_agents()
+    brad_persona = get_persona_text("brad")
+    # let's modify the first agent's persona
+    # custodian.update_agent_persona(agents[0].id, brad_persona)
+    # custodian.reset_messages()
     custodian.delete_multi_agents()
-    # agent_pool = AgentPool(2) 

@@ -772,6 +772,17 @@ class MetadataStore:
                 .filter(PresetModel.user_id == user_id)
             result.update(changes)
             session.commit()
+    
+    def update_agent_multi(self, agent_id: uuid.UUID, changes):
+        with self.session_maker() as session:
+            result = session.query(AgentModel).filter(AgentModel.id == agent_id)
+            cur_state = result.first().state
+            for change in changes.get('state', []):
+                if change in cur_state:
+                    cur_state[change] = changes['state'][change]
+            changes["state"].update(cur_state)
+            result.update(changes)
+            session.commit()
 
     # job related functions
     def create_job(self, job: JobModel):

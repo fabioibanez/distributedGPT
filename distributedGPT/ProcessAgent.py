@@ -59,13 +59,13 @@ class ProcessAgent(Agent):
 
         skip_next_user_input = False
         if token_warning:
-            user_message = memgpt.system.system.get_token_limit_warning()
+            user_message = memgpt.system.get_token_limit_warning()
             skip_next_user_input = True
         elif function_failed:
-            user_message = memgpt.system.system.get_heartbeat(FUNC_FAILED_HEARTBEAT_MESSAGE)
+            user_message = memgpt.system.get_heartbeat(FUNC_FAILED_HEARTBEAT_MESSAGE)
             skip_next_user_input = True
         elif heartbeat_request:
-            user_message = memgpt.system.system.get_heartbeat(REQ_HEARTBEAT_MESSAGE)
+            user_message = memgpt.system.get_heartbeat(REQ_HEARTBEAT_MESSAGE)
             skip_next_user_input = True
 
         return new_messages, user_message, skip_next_user_input
