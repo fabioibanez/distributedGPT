@@ -48,12 +48,7 @@ class PoolPipeInterface(PoolInterface):
         
         # TODO: generalize this?
         # get the agents from the custodian (for now)
-        agent_states = MultiAgentCustodian.init().list_multi_agents()
-        # config = MemGPTConfig()
-        # ms = MetadataStore(config)
-        # user_id = uuid.UUID(config.anon_clientid)
-        # agent_states = ms.list_agents(user_id)
-        
+        agent_states = MultiAgentCustodian.init().list_multi_agents()     
         self.agents = [ProcessAgent(agent_states[i], AgentPipeInterface(self.get_agent_conns()[i])) for i in range(N)]
         self.processes = [mp.Process(target=ProcessAgent.event_loop, args=(self.agents[i],)) for i in range(N)]
         

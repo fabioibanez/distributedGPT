@@ -722,11 +722,12 @@ class Agent(object):
                         first_message=True,  # passed through to the prompt formatter
                         stream=stream,
                     )
-                    print("THIS IS WHAT GPT RESPONDED WITH:", response)
                     # exit()
+                    print("Yo")
                     if verify_first_message_correctness(response, require_monologue=self.first_message_verify_mono):
+                        print("breaking")
                         break
-
+                    
                     counter += 1
                     if counter > first_message_retry_limit:
                         raise Exception(f"Hit first message retry limit ({first_message_retry_limit})")
@@ -743,7 +744,6 @@ class Agent(object):
             response_message = response.choices[0].message
             response_message.model_copy()  # TODO why are we copying here?
             all_response_messages, heartbeat_request, function_failed = self._handle_ai_response(response_message)
-
             # Add the extra metadata to the assistant response
             # (e.g. enough metadata to enable recreating the API call)
             # assert "api_response" not in all_response_messages[0]
@@ -763,7 +763,6 @@ class Agent(object):
                     raise ValueError(type(user_message))
             else:
                 all_new_messages = all_response_messages
-
             # Check the memory pressure and potentially issue a memory pressure warning
             current_total_tokens = response.usage.total_tokens
             active_memory_warning = False
