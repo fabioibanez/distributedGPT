@@ -7,7 +7,7 @@ from colorama import Fore, Style, init
 from memgpt.constants import CLI_WARNING_PREFIX, JSON_LOADS_STRICT
 from memgpt.data_types import Message
 
-init(autoreset=True)
+init(autoreset=False)
 
 
 # DEBUG = True  # puts full message outputs in the terminal

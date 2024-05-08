@@ -387,7 +387,7 @@ def run_agent_loop(
                     new_messages, user_message, skip_next_user_input = process_agent_step(user_message, no_verify)
                     break
                 else:
-                    if stream:
+                    if True:
                         # Don't display the "Thinking..." if streaming
                         new_messages, user_message, skip_next_user_input = process_agent_step(user_message, no_verify)
                     else:

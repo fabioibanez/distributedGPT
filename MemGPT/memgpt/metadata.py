@@ -509,6 +509,19 @@ class MetadataStore:
             session.query(AgentSourceMappingModel).filter(AgentSourceMappingModel.agent_id == agent_id).delete()
 
             session.commit()
+    
+    @enforce_types
+    def delete_agents_having_preset(self, user_id: uuid.UUID, preset: str):
+        with self.session_maker() as session:
+            # get agents first
+            agents = session.query(AgentModel).filter(AgentModel.user_id == user_id).filter(AgentModel.preset == preset).all()
+            agent_ids = [agent.id for agent in agents]
+            # now we can delete the agents
+            session.query(AgentModel).filter(AgentModel.user_id == user_id).filter(AgentModel.preset == preset).delete()
+            # delete mappings as well
+            session.query(AgentSourceMappingModel).filter(AgentSourceMappingModel.agent_id.in_(agent_ids)).delete()
+            
+            session.commit()
 
     @enforce_types
     def delete_source(self, source_id: uuid.UUID):
@@ -567,6 +580,12 @@ class MetadataStore:
     def list_agents(self, user_id: uuid.UUID) -> List[AgentState]:
         with self.session_maker() as session:
             results = session.query(AgentModel).filter(AgentModel.user_id == user_id).all()
+            return [r.to_record() for r in results]
+    
+    @enforce_types
+    def list_agents_having_preset(self, user_id: uuid.UUID, preset: str):
+        with self.session_maker() as session:
+            results = session.query(AgentModel).filter(AgentModel.user_id == user_id).filter(AgentModel.preset == preset).all()
             return [r.to_record() for r in results]
 
     @enforce_types
@@ -744,6 +763,25 @@ class MetadataStore:
     def delete_preset(self, name: str, user_id: uuid.UUID):
         with self.session_maker() as session:
             session.query(PresetModel).filter(PresetModel.name == name).filter(PresetModel.user_id == user_id).delete()
+            session.commit()
+    
+    @enforce_types
+    def update_preset(self, name: str, user_id: uuid.UUID, changes):
+        with self.session_maker() as session:
+            result = session.query(PresetModel).filter(PresetModel.name == name)\
+                .filter(PresetModel.user_id == user_id)
+            result.update(changes)
+            session.commit()
+    
+    def update_agent_multi(self, agent_id: uuid.UUID, changes):
+        with self.session_maker() as session:
+            result = session.query(AgentModel).filter(AgentModel.id == agent_id)
+            cur_state = result.first().state
+            for change in changes.get('state', []):
+                if change in cur_state:
+                    cur_state[change] = changes['state'][change]
+            changes["state"].update(cur_state)
+            result.update(changes)
             session.commit()
 
     # job related functions

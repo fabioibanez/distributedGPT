@@ -9,7 +9,7 @@ from memgpt.constants import CLI_WARNING_PREFIX, JSON_LOADS_STRICT
 from memgpt.data_types import Message
 from memgpt.utils import printd
 
-init(autoreset=True)
+init(autoreset=False)
 
 # DEBUG = True  # puts full message outputs in the terminal
 DEBUG = False  # only dumps important messages in the terminal

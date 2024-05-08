@@ -17,6 +17,22 @@ FUNCTIONS_CHAINING = {
             "required": ["message"],
         },
     },
+    # ADDING NEW FUNCTION WHICH WILL INFORM SYSTEM TO SEND MESSAGE TO GPT AGENT
+    "send_message_memgpt_agent": {
+        "name": "send_message_memgpt_agent",
+        "description": "Sends a message meant to be for another MemGPT-based agent.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                # https://json-schema.org/understanding-json-schema/reference/array.html
+                "message": {
+                    "type": "string",
+                    "description": "Message contents. All unicode (including emojis) are supported.",
+                },
+            },
+            "required": ["message"],
+        },
+    },
     "pause_heartbeats": {
         "name": "pause_heartbeats",
         "description": "Temporarily ignore timed heartbeats. You may still receive messages from manual heartbeats and other events.",
