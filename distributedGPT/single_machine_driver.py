@@ -5,7 +5,7 @@ from AgentInterface import *
 
 
 def main():
-    num_agents = 2
+    num_agents = 1
     AgentPool(num_agents, InterfaceTypes.PIPE)
     
 main()

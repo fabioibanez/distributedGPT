@@ -2,7 +2,8 @@ from __future__ import annotations
 from typing import Annotated, List, Tuple, Dict, Any, Union
 import multiprocessing as mp
 from messages import AgentMessage
-from PoolInterface import PoolInterface, PoolPipeInterface
+from PoolInterface import PoolPipeInterface
+from PoolRPCInterface import PoolRPCInterface
 
 import json
 from enum import Enum
@@ -50,8 +51,12 @@ class AgentPool:
 
         if interface_type == InterfaceTypes.PIPE:
             self.interface = PoolPipeInterface(self.N)
+        elif interface_type == InterfaceTypes.RPC:
+            self.interface = PoolRPCInterface(self.N)
         else:
             raise NotImplementedError
+        
+        exit()
     
         self.interface.start_processes()
         AgentPool.event_loop(self)
@@ -69,8 +74,8 @@ class AgentPool:
     
     def recv_any(self) -> List[object]:
         return self.interface._recv_any()
-        
+    
     
 if __name__ == "__main__":
-    agent_pool = AgentPool(1)
+    agent_pool = AgentPool(1, InterfaceTypes.RPC)
     

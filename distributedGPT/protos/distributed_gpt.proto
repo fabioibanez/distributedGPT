@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+service Leader {
+    rpc getAgentAssignment (AssignmentRequest) returns (Assignment) {}
+}
+
+message AssignmentRequest {
+    string id = 1;
+}
+
+message LLMConfig {
+    optional string model = 1;
+    optional string model_endpoint_type = 2;
+    optional string model_endpoint = 3;
+    optional string model_wrapper = 4;
+    optional int32 context_window = 5;
+}
+
+message EmbeddingConfig {
+    optional string embedding_endpoint_type = 1;
+    optional string embedding_endpoint = 2; 
+    optional string embedding_model = 3; 
+    optional int32 embedding_dim = 4;
+    optional int32 embedding_chunk_size = 5;
+}
+
+// message Required {
+//     repeated string item = 1;
+// }
+
+message PropertyDescription {
+    string type = 1;
+    string description = 2;
+}
+
+message Parameters {
+    string type = 1;
+    map<string, PropertyDescription> properties = 2;
+    repeated string required = 3;
+}
+
+message Function {
+    string name = 1;
+    string description = 2;
+    Parameters parameters = 3;
+}
+
+message State {
+    string persona = 1;
+    string human = 2;
+    string system = 3;
+    repeated Function functions = 4;
+    repeated string messages = 5;
+}
+
+message AgentState {
+    string name = 1;
+    string user_id = 2;
+    string persona = 3;
+    string human = 4;
+    LLMConfig llm_config = 5;
+    EmbeddingConfig embedding_config = 6;
+    string preset = 7;
+    optional string id = 8;
+    optional State state = 9;
+}
+
+// the assignment message will contain the data needed to instantitate a `ProcessAgent` object
+message Assignment {
+    int32 process_id = 1;
+    AgentState agent_state = 2;
+}

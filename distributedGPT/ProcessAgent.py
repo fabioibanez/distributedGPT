@@ -8,6 +8,9 @@ import json
 from typing import List, Union
 from dataclasses import dataclass
 from memgpt.interface import AgentInterface
+import grpc
+import distributed_gpt_pb2
+import distributed_gpt_pb2_grpc
 
 @dataclass
 class StepResponse:
@@ -25,6 +28,33 @@ class StepResponse:
         print(colorful) 
 
 class ProcessAgent(Agent):
+    
+    @classmethod
+    def as_rpc_client(cls):
+        # we put the fucking rpc client code here
+        with grpc.insecure_channel("localhost:50051") as channel:
+            stub = distributed_gpt_pb2_grpc.LeaderStub(channel)
+            assignment_request = distributed_gpt_pb2.AssignmentRequest(id="0")
+            result = stub.getAgentAssignment(assignment_request)
+            print(result)
+            
+    
+    def __init__(self, proc_id: int, agent_state: AgentState, interface: AgentInterface):
+        """
+        Requires a client to pass in the an AgentInterface instance 
+        (i.e. AgentPipeInterface) to communicate with the main process/
+        leader.
+
+        Args:
+            agent_state (AgentState): _description_
+            interface (AgentInterface): _description_
+        """
+        super().__init__(interface=interface, agent_state=agent_state)
+        # this symbolizes the most recent message that the agent has received from main process
+        self.message = None
+        self.proc_id = proc_id
+        # doing this weird no-op initialization to get type hinting
+        self.interface : AgentInterface = self.interface
     
     @staticmethod
     def event_loop(agent: ProcessAgent):
@@ -71,23 +101,6 @@ class ProcessAgent(Agent):
 
         return new_messages, user_message, skip_next_user_input
     
-    
-    def __init__(self, proc_id: int, agent_state: AgentState, interface: AgentInterface):
-        """
-        Requires a client to pass in the an AgentInterface instance 
-        (i.e. AgentPipeInterface) to communicate with the main process/
-        leader.
-
-        Args:
-            agent_state (AgentState): _description_
-            interface (AgentInterface): _description_
-        """
-        super().__init__(interface=interface, agent_state=agent_state)
-        # this symbolizes the most recent message that the agent has received from main process
-        self.message = None
-        self.proc_id = proc_id
-        # doing this weird no-op initialization to get type hinting
-        self.interface : AgentInterface = self.interface
     
     def respond(self, msg) -> StepResponse:
         new_messages, user_message, skip_next_user_input = ProcessAgent.process_agent_step(self, msg, False)
