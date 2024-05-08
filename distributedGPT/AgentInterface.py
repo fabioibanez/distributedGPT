@@ -32,8 +32,10 @@ class AgentPipeInterface(AgentInterface):
         print("Calling internal_monologue")
     
     def assistant_message(self, msg: str, msg_obj: Message | None = None):
-        print("Calling assistant_message")
-    
+        print("Sending data to leader")
+        # self.pipe.send(msg)
+        print("Sent")
+
     def function_message(self, msg: str, msg_obj: Message | None = None):
         print("Calling a function!")
     

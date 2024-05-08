@@ -33,14 +33,16 @@ class AgentPool:
                 "content": "What is your name?"
             }
 
-            data_for_agent_two = {
-                "src_id": 1,
-                "content": "What is your name?" 
-            }
+            # data_for_agent_two = {
+            #     "src_id": 1,
+            #     "content": "What is your name?" 
+            # }
             
             pool.send(json.dumps(data_for_agent_one), 0)
-            pool.send(json.dumps(data_for_agent_two), 1)
+            # pool.send(json.dumps(data_for_agent_two), 1)
+
             results : List[StepResponse] = pool.recv()
+            print(results)
             for result in results:
                 result.pprint_agent_message() 
             break
@@ -72,5 +74,5 @@ class AgentPool:
         
     
 if __name__ == "__main__":
-    agent_pool = AgentPool(2)
+    agent_pool = AgentPool(1)
     

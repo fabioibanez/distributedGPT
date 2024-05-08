@@ -713,7 +713,7 @@ class Agent(object):
                 printd(f"{CLI_WARNING_PREFIX}Attempting to run ChatCompletion without user as the last message in the queue")
 
             # Step 1: send the conversation and available functions to GPT
-            if not skip_verify and (first_message or self.messages_total == self.messages_total_init):
+            if False and not skip_verify and (first_message or self.messages_total == self.messages_total_init):
                 printd(f"This is the first message. Running extra verifier on AI response.")
                 counter = 0
                 while True:
@@ -722,10 +722,8 @@ class Agent(object):
                         first_message=True,  # passed through to the prompt formatter
                         stream=stream,
                     )
-                    # exit()
-                    print("Yo")
+
                     if verify_first_message_correctness(response, require_monologue=self.first_message_verify_mono):
-                        print("breaking")
                         break
                     
                     counter += 1
@@ -733,16 +731,18 @@ class Agent(object):
                         raise Exception(f"Hit first message retry limit ({first_message_retry_limit})")
 
             else:
-                response = self._get_ai_reply(
-                    message_sequence=input_message_sequence,
-                    stream=stream,
-                )
+                # response = self._get_ai_reply(
+                #     message_sequence=input_message_sequence,
+                #     stream=stream,
+                # )
+                response = chat_completion_response.DUMMY_RESPONSE
+                pass
 
             # Step 2: check if LLM wanted to call a function
             # (if yes) Step 3: call the function
             # (if yes) Step 4: send the info on the function call and function response to LLM
             response_message = response.choices[0].message
-            response_message.model_copy()  # TODO why are we copying here?
+            # response_message.model_copy()  # TODO why are we copying here?
             all_response_messages, heartbeat_request, function_failed = self._handle_ai_response(response_message)
             # Add the extra metadata to the assistant response
             # (e.g. enough metadata to enable recreating the API call)
