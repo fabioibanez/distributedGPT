@@ -5,6 +5,7 @@ import multiprocessing as mp
 from multiprocessing.connection import Connection
 from dataclasses import dataclass
 import uuid
+from collections import deque
 import json
 from messages.Message import Message
 from abc import ABC, abstractmethod
@@ -14,6 +15,7 @@ import memgpt.system
 from Custodian import MultiAgentCustodian
 from ProcessAgent import ProcessAgent, StepResponse
 from AgentInterface import AgentPipeInterface
+from grpc_driver.grpc_server import DistributedGPTLeader
 
 Status = dict
 
@@ -92,5 +94,18 @@ class PoolPipeInterface(PoolInterface):
     
     def get_agent_conns(self) -> List[Connection]:
         return [pipe[1] for pipe in self._pipes]
-    
  
+ 
+class PoolRCPInterface(PoolInterface):
+    def __init__(self, N: int):
+        self.N = N
+        ''' what type of information does leader need to know / 
+        things that come to mind:
+        1) worker-worker relationships (perhaps a map of clientid->clientid)
+        '''
+        self.job_queue = deque(maxlen=10)
+        self.rpc = DistributedGPTLeader(self) 
+   
+   
+    def test(self):
+        self.rpc.test()

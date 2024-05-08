@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package mypackage;
+
+service distributedGPTLeader {
+  rpc SendMessageToLeader (ClientMessage) returns (LeaderResponse) {}
+  rpc RegisterClient (RegisterClientRequest) returns (RegisterClientResponse) {}
+  rpc SendMessageToClient (LeaderMessage) returns (ClientResponse) {}
+}
+
+message JobRequest {
+  int id = 1;
+  string description = 2;  
+}
+
+
+message ClientMessage {
+  string client_id = 1;
+  string message = 2;
+}
+
+message LeaderResponse {
+  string message = 1;
+}
+
+message LeaderMessage {
+  string client_id = 1;
+  string message = 2;
+}
+
+message ClientResponse {
+  string message = 1;
+}
+
+message RegisterClientRequest {
+  string client_id = 1;
+}
+
+message RegisterClientResponse {
+  string message = 1;
+}

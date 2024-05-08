@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import uuid
 import json
 from messages.Message import Message
+from grpc_driver.grpc_client import distributedGPTClient
 
 class AgentPipeInterface(AgentInterface):
     """
@@ -39,7 +40,7 @@ class AgentPipeInterface(AgentInterface):
     def function_message(self, msg: str, msg_obj: Message | None = None):
         print("Calling a function!")
     
-    ################### AgentPipeInterface specific methods! ##################################
+    ################### AgentPipeInterface specific methods! ###################
     def get_message(self) -> Any:
         """Wait for the main process to send a message, and process it"""
         message = self.pipe.recv()
@@ -53,5 +54,28 @@ class AgentPipeInterface(AgentInterface):
         
     def __del__(self):
         """When the interface is being torn down, close all the pipes"""
+
+
+class RPCAgentInterface(AgentInterface):
+    def __init__(self, RPCclient: distributedGPTClient):
+        """
+        pipe: this is a pipe that lets us talk to the main process
+        """
+        self.RPCclient = RPCclient
+        # this attribute symbolizes the most recent mes
+        self.message = None
+    
+    def user_message(self, msg: str, msg_obj: Message | None = None):
+        print("Calling user_message")
+    
+    def internal_monologue(self, msg: str, msg_obj: Message | None = None):
+        print("Calling internal_monologue")
+    
+    def assistant_message(self, msg: str, msg_obj: Message | None = None):
+        print("Calling assistant_message")
+    
+    def function_message(self, msg: str, msg_obj: Message | None = None):
+        print("Calling a function!") 
         
-        
+    ################### RPCAgentInterface specific methods! ###################
+    
