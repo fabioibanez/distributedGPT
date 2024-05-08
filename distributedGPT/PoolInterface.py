@@ -15,7 +15,7 @@ import memgpt.system
 from Custodian import MultiAgentCustodian
 from ProcessAgent import ProcessAgent, StepResponse
 from AgentInterface import AgentPipeInterface
-from grpc_driver.grpc_server import DistributedGPTLeader
+# from grpc_server import DistributedGPTLeader
 
 Status = dict
 
@@ -49,7 +49,7 @@ class PoolPipeInterface(PoolInterface):
         # TODO: generalize this?
         # get the agents from the custodian (for now)
         agent_states = MultiAgentCustodian.init().list_multi_agents()     
-        self.agents = [ProcessAgent(agent_states[i], AgentPipeInterface(self.get_agent_conns()[i])) for i in range(N)]
+        self.agents = [ProcessAgent(i+1, agent_states[i], AgentPipeInterface(self.get_agent_conns()[i])) for i in range(N)]
         self.processes = [mp.Process(target=ProcessAgent.event_loop, args=(self.agents[i],)) for i in range(N)]
         
     def _broadcast(self, msg: str) -> Status:
@@ -76,6 +76,13 @@ class PoolPipeInterface(PoolInterface):
             status[i] = pipe.recv()
         return status
     
+    def _recv_any(self) -> object:
+        i = 0
+        while True:
+            pipe = self._parent_conns[i]
+            if pipe.poll():
+                return pipe.recv()
+            i = (i + 1) % self.N 
     
     def start_processes(self) -> None:
         for i in range(self.N):
@@ -96,16 +103,35 @@ class PoolPipeInterface(PoolInterface):
         return [pipe[1] for pipe in self._pipes]
  
  
-class PoolRCPInterface(PoolInterface):
-    def __init__(self, N: int):
-        self.N = N
-        ''' what type of information does leader need to know / 
-        things that come to mind:
-        1) worker-worker relationships (perhaps a map of clientid->clientid)
-        '''
-        self.job_queue = deque(maxlen=10)
-        self.rpc = DistributedGPTLeader(self) 
+# class PoolRPCInterface(PoolInterface):
+#     def __init__(self, N: int):
+#         self.N = N
+#         ''' what type of information does leader need to know / 
+#         things that come to mind:
+#         1) worker-worker relationships (perhaps a map of clientid->clientid)
+#         '''
+#         self.job_queue = deque(maxlen=10)
+#         self.rpc = DistributedGPTLeader(self) 
    
+
+#     def _broadcast(self, msg: str) -> Status:
+#         pass
+    
+    
+#     def _send_message(self, msg: str, dst_id: int) -> Status:
+#         pass
+    
+    
+#     def _recv(self) -> List[object]:
+#         pass
+    
+    
+#     def start_processes(self) -> None:
+#         pass
+    
+    
+#     def join_processes(self) -> None:
+#         pass
    
-    def test(self):
-        self.rpc.test()
+#     def test(self):
+#         self.rpc.test()

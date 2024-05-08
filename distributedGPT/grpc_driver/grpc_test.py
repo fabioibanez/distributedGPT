@@ -1,7 +1,6 @@
 import sys
-sys.path.append('/home/fabioi/distributedGPT')
 from grpc_server import DistributedGPTLeader
-from distributedGPT.PoolInterface import PoolRPCInterface
+from PoolInterface import PoolRPCInterface
 
 
 if __name__ == '__main__':

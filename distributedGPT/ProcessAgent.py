@@ -35,6 +35,8 @@ class ProcessAgent(Agent):
         while True:
             # get the latest message available (will always be a new message by construction of while loop)
             agent.read_from_main()
+            if isinstance(agent.message, dict) and agent.message['content'] == "STOP":
+                break
             
             # TODO: add a validation routine here that makes sure message scheme is consistent
             # <validation routine call here> 
@@ -43,10 +45,9 @@ class ProcessAgent(Agent):
             # to the main process
 
             msg = MessageFactory.create_agent_input(agent.message)
-            response = agent.respond(msg)
+            agent.respond(msg)
             
-            agent.write_to_main(response)
-            break
+            # agent.write_to_main(response)
 
     @staticmethod
     def process_agent_step(agent: ProcessAgent, user_message, no_verify = False):
@@ -71,7 +72,7 @@ class ProcessAgent(Agent):
         return new_messages, user_message, skip_next_user_input
     
     
-    def __init__(self, agent_state: AgentState, interface: AgentInterface):
+    def __init__(self, proc_id: int, agent_state: AgentState, interface: AgentInterface):
         """
         Requires a client to pass in the an AgentInterface instance 
         (i.e. AgentPipeInterface) to communicate with the main process/
@@ -84,6 +85,7 @@ class ProcessAgent(Agent):
         super().__init__(interface=interface, agent_state=agent_state)
         # this symbolizes the most recent message that the agent has received from main process
         self.message = None
+        self.proc_id = proc_id
         # doing this weird no-op initialization to get type hinting
         self.interface : AgentInterface = self.interface
     

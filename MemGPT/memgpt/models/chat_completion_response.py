@@ -147,7 +147,7 @@ DUMMY_RESPONSE = ChatCompletionResponse(id='chatcmpl-9MUGCPdrrGPZ6spXk0CAq4XoIoJ
     choices=[Choice(finish_reason='tool_calls', index=0, 
     message=Message(content='First interaction with leader. Warm welcome is in order to make him feel comfortable and open to conversation.', 
         tool_calls=[ToolCall(id='call_TFlIjwIoUsVcfqpByOV9V3Vc',type='function', 
-        function=FunctionCall(arguments='{\n  "id": 0,\n  "message": "Hello! It\'s great to meet you. My name is Brad. How  can I assist you today?",\n  "request_heartbeat": false\n}',
+        function=FunctionCall(arguments='{\n  "id": 2,\n  "message": "Hello! It\'s great to meet you. My name is Brad. How  can I assist you today?",\n  "request_heartbeat": false\n}',
                               name='send_message_remote'))], role='assistant', function_call=None),                 
 logprobs=None)], created=datetime.datetime(2024, 5, 8, 5, 36, 4), model='gpt-4-0613', system_fingerprint=None, object='chat.completion',
     usage=UsageStatistics(completion_tokens=80, prompt_tokens=2301, total_tokens=2381))   
