@@ -28,9 +28,9 @@ class StepResponse:
 class ProcessAgent(Agent):
     
     @classmethod
-    def as_rpc_client(cls, port=int):
+    def as_rpc_client(cls, addr:str, port:int):
         # create an interface for this agent
-        interface = RPCAgentInterface(port)
+        interface = RPCAgentInterface(addr, port)
         process_id, agent_state = interface.init()
         return cls(process_id, agent_state, interface)
     

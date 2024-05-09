@@ -6,10 +6,12 @@ from ProcessAgent import ProcessAgent
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--type", required=True, type=str, choices=['client', 'server'])
+    parser.add_argument("--ip", required=True, type=str, default='localhost')
+    parser.add_argument("--port", required=True, type=int, default=50051)
     args = parser.parse_args()
     if args.type == "client":
         # spin up a client
-        agent = ProcessAgent.as_rpc_client(port=50051)
+        agent = ProcessAgent.as_rpc_client(args.addr, args.port)
         ProcessAgent.event_loop(agent)
     else:
         # spin up a server
