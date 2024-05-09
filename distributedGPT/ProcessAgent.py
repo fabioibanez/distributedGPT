@@ -1,6 +1,5 @@
 from __future__ import annotations
 from memgpt.agent import Agent, AgentState
-from multiprocessing.connection import Connection
 from memgpt.constants import JSON_ENSURE_ASCII, FUNC_FAILED_HEARTBEAT_MESSAGE, REQ_HEARTBEAT_MESSAGE
 from messages.MessageFactory import MessageFactory
 import memgpt.system
@@ -8,9 +7,8 @@ import json
 from typing import List, Union
 from dataclasses import dataclass
 from memgpt.interface import AgentInterface
-import grpc
-import distributed_gpt_pb2
-import distributed_gpt_pb2_grpc
+from RPCAgentInterface import RPCAgentInterface
+
 
 @dataclass
 class StepResponse:
@@ -30,14 +28,11 @@ class StepResponse:
 class ProcessAgent(Agent):
     
     @classmethod
-    def as_rpc_client(cls):
-        # we put the fucking rpc client code here
-        with grpc.insecure_channel("localhost:50051") as channel:
-            stub = distributed_gpt_pb2_grpc.LeaderStub(channel)
-            assignment_request = distributed_gpt_pb2.AssignmentRequest(id="0")
-            result = stub.getAgentAssignment(assignment_request)
-            print(result)
-            
+    def as_rpc_client(cls, port=int):
+        # create an interface for this agent
+        interface = RPCAgentInterface(port)
+        process_id, agent_state = interface.init()
+        return cls(process_id, agent_state, interface)
     
     def __init__(self, proc_id: int, agent_state: AgentState, interface: AgentInterface):
         """
@@ -65,7 +60,7 @@ class ProcessAgent(Agent):
         while True:
             # get the latest message available (will always be a new message by construction of while loop)
             agent.read_from_main()
-            if isinstance(agent.message, dict) and agent.message['content'] == "STOP":
+            if agent.message['content'] == "STOP":
                 break
             
             # TODO: add a validation routine here that makes sure message scheme is consistent
@@ -75,6 +70,7 @@ class ProcessAgent(Agent):
             # to the main process
 
             msg = MessageFactory.create_agent_input(agent.message)
+            # print("about to respond to this message:", msg)
             agent.respond(msg)
             
             # agent.write_to_main(response)

@@ -5,6 +5,28 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class Status(_message.Message):
+    __slots__ = ("content",)
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    content: str
+    def __init__(self, content: _Optional[str] = ...) -> None: ...
+
+class AgentMessage(_message.Message):
+    __slots__ = ("src_id", "dst_id", "content")
+    SRC_ID_FIELD_NUMBER: _ClassVar[int]
+    DST_ID_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    src_id: int
+    dst_id: int
+    content: str
+    def __init__(self, src_id: _Optional[int] = ..., dst_id: _Optional[int] = ..., content: _Optional[str] = ...) -> None: ...
+
+class TaskRequest(_message.Message):
+    __slots__ = ("id",)
+    ID_FIELD_NUMBER: _ClassVar[int]
+    id: int
+    def __init__(self, id: _Optional[int] = ...) -> None: ...
+
 class AssignmentRequest(_message.Message):
     __slots__ = ("id",)
     ID_FIELD_NUMBER: _ClassVar[int]
@@ -117,3 +139,11 @@ class Assignment(_message.Message):
     process_id: int
     agent_state: AgentState
     def __init__(self, process_id: _Optional[int] = ..., agent_state: _Optional[_Union[AgentState, _Mapping]] = ...) -> None: ...
+
+class Task(_message.Message):
+    __slots__ = ("src_id", "content")
+    SRC_ID_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    src_id: int
+    content: str
+    def __init__(self, src_id: _Optional[int] = ..., content: _Optional[str] = ...) -> None: ...

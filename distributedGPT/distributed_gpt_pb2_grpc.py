@@ -39,17 +39,39 @@ class LeaderStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.getAgentAssignment = channel.unary_unary(
-                '/Leader/getAgentAssignment',
+        self.giveAgentAssignment = channel.unary_unary(
+                '/Leader/giveAgentAssignment',
                 request_serializer=distributed__gpt__pb2.AssignmentRequest.SerializeToString,
                 response_deserializer=distributed__gpt__pb2.Assignment.FromString,
+                _registered_method=True)
+        self.giveAgentMessage = channel.unary_unary(
+                '/Leader/giveAgentMessage',
+                request_serializer=distributed__gpt__pb2.TaskRequest.SerializeToString,
+                response_deserializer=distributed__gpt__pb2.Task.FromString,
+                _registered_method=True)
+        self.processAgentMessage = channel.unary_unary(
+                '/Leader/processAgentMessage',
+                request_serializer=distributed__gpt__pb2.AgentMessage.SerializeToString,
+                response_deserializer=distributed__gpt__pb2.Status.FromString,
                 _registered_method=True)
 
 
 class LeaderServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def getAgentAssignment(self, request, context):
+    def giveAgentAssignment(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def giveAgentMessage(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def processAgentMessage(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -58,10 +80,20 @@ class LeaderServicer(object):
 
 def add_LeaderServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'getAgentAssignment': grpc.unary_unary_rpc_method_handler(
-                    servicer.getAgentAssignment,
+            'giveAgentAssignment': grpc.unary_unary_rpc_method_handler(
+                    servicer.giveAgentAssignment,
                     request_deserializer=distributed__gpt__pb2.AssignmentRequest.FromString,
                     response_serializer=distributed__gpt__pb2.Assignment.SerializeToString,
+            ),
+            'giveAgentMessage': grpc.unary_unary_rpc_method_handler(
+                    servicer.giveAgentMessage,
+                    request_deserializer=distributed__gpt__pb2.TaskRequest.FromString,
+                    response_serializer=distributed__gpt__pb2.Task.SerializeToString,
+            ),
+            'processAgentMessage': grpc.unary_unary_rpc_method_handler(
+                    servicer.processAgentMessage,
+                    request_deserializer=distributed__gpt__pb2.AgentMessage.FromString,
+                    response_serializer=distributed__gpt__pb2.Status.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -74,7 +106,7 @@ class Leader(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def getAgentAssignment(request,
+    def giveAgentAssignment(request,
             target,
             options=(),
             channel_credentials=None,
@@ -87,9 +119,63 @@ class Leader(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/Leader/getAgentAssignment',
+            '/Leader/giveAgentAssignment',
             distributed__gpt__pb2.AssignmentRequest.SerializeToString,
             distributed__gpt__pb2.Assignment.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def giveAgentMessage(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/Leader/giveAgentMessage',
+            distributed__gpt__pb2.TaskRequest.SerializeToString,
+            distributed__gpt__pb2.Task.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def processAgentMessage(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/Leader/processAgentMessage',
+            distributed__gpt__pb2.AgentMessage.SerializeToString,
+            distributed__gpt__pb2.Status.FromString,
             options,
             channel_credentials,
             insecure,

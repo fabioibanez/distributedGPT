@@ -4,6 +4,7 @@ import multiprocessing as mp
 from messages import AgentMessage
 from PoolInterface import PoolPipeInterface
 from PoolRPCInterface import PoolRPCInterface
+from google.protobuf.json_format import MessageToDict
 
 import json
 from enum import Enum
@@ -19,28 +20,32 @@ class AgentPool:
     @staticmethod
     def event_loop(pool: AgentPool):
         should_terminate = False
+        
         outgoing_msg = {
             "src_id": 2,
+            "dst_id": 1,
             "content": "What is your name? And could you tell me more about yourself?"
         }
-        pool.send(json.dumps(outgoing_msg), 0)
+        
+        pool.send(AgentMessage(_raw=outgoing_msg, **outgoing_msg))
         i = 0
         while not should_terminate:
 
             # the pool waits for any of the agents to send something
             result : dict = pool.recv_any()
-            result : AgentMessage = AgentMessage(_raw=result, content=result['content'], src_id=result['src_id'], dst_id=result['dst_id'])
-            result.pprint_message() 
+            result : AgentMessage = AgentMessage(_raw=MessageToDict(result), content=result.content, src_id=result.src_id, dst_id=result.dst_id)
+            result.pprint_message()
+            # print(type) 
             # relay the message
-            outgoing_msg = {'src_id': result.src_id, "content": result.content}
+            outgoing_msg = {'src_id': result.src_id, "dst_id": result.dst_id, "content": result.content}
             
             # print(f'sending outgoing_msg {outgoing_msg} \n\nto agent with PROC ID {result.dst_id}')
             i += 1
-            if i >= 5:
+            if i >= 4:
                 pool.broadcast(AgentPool.STOP_MSG)
                 break
             else:
-                pool.send(json.dumps(outgoing_msg), result.dst_id - 1)
+                pool.send(AgentMessage(_raw=outgoing_msg, **outgoing_msg))
             
             
     def __init__(self, N: Annotated[int, "num memgpt agents"], interface_type: InterfaceTypes):
@@ -55,8 +60,6 @@ class AgentPool:
             self.interface = PoolRPCInterface(self.N)
         else:
             raise NotImplementedError
-        
-        exit()
     
         self.interface.start_processes()
         AgentPool.event_loop(self)
@@ -66,8 +69,8 @@ class AgentPool:
         """broadcast() sends some message to all agent processes; returns status"""
         return self.interface._broadcast(msg)
         
-    def send(self, msg:str, dst_id: int) -> Status:
-        return self.interface._send_message(msg, dst_id)
+    def send(self, msg:str) -> Status:
+        return self.interface._send_message(msg)
     
     def recv(self) -> List[object]:
         return self.interface._recv()

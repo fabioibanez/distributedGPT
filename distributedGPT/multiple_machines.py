@@ -9,7 +9,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.type == "client":
         # spin up a client
-        ProcessAgent.as_rpc_client()
+        agent = ProcessAgent.as_rpc_client(port=50051)
+        ProcessAgent.event_loop(agent)
     else:
         # spin up a server
-        AgentPool(1, InterfaceTypes.RPC)
+        AgentPool(2, InterfaceTypes.RPC)
