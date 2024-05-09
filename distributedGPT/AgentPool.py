@@ -5,6 +5,7 @@ from messages import AgentMessage
 from PoolInterface import PoolPipeInterface
 from PoolRPCInterface import PoolRPCInterface
 from google.protobuf.json_format import MessageToDict
+from termcolor import colored
 
 import json
 from enum import Enum
@@ -34,7 +35,10 @@ class AgentPool:
             # the pool waits for any of the agents to send something
             result : dict = pool.recv_any()
             result : AgentMessage = AgentMessage(_raw=MessageToDict(result), content=result.content, src_id=result.src_id, dst_id=result.dst_id)
+            print()
+            print(colored(f"Message from agent {result.src_id}:", "green", attrs=["bold"]))
             result.pprint_message()
+            print()
             # print(type) 
             # relay the message
             outgoing_msg = {'src_id': result.src_id, "dst_id": result.dst_id, "content": result.content}

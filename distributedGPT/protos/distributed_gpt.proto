@@ -4,10 +4,15 @@ service Leader {
     rpc giveAgentAssignment (AssignmentRequest) returns (Assignment) {}
     rpc giveAgentMessage (TaskRequest) returns (Task) {}
     rpc processAgentMessage (AgentMessage) returns (Status) {}
+    rpc sayGoodbye (GoodbyeMessage) returns (Status) {}
 }
 
 message Status {
     string content = 1;
+}
+
+message GoodbyeMessage {
+    int32 id = 1;
 }
 
 message AgentMessage {
@@ -40,9 +45,6 @@ message EmbeddingConfig {
     optional int32 embedding_chunk_size = 5;
 }
 
-// message Required {
-//     repeated string item = 1;
-// }
 
 message PropertyDescription {
     string type = 1;

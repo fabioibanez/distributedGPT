@@ -11,6 +11,12 @@ class Status(_message.Message):
     content: str
     def __init__(self, content: _Optional[str] = ...) -> None: ...
 
+class GoodbyeMessage(_message.Message):
+    __slots__ = ("id",)
+    ID_FIELD_NUMBER: _ClassVar[int]
+    id: int
+    def __init__(self, id: _Optional[int] = ...) -> None: ...
+
 class AgentMessage(_message.Message):
     __slots__ = ("src_id", "dst_id", "content")
     SRC_ID_FIELD_NUMBER: _ClassVar[int]

@@ -731,11 +731,11 @@ class Agent(object):
                         raise Exception(f"Hit first message retry limit ({first_message_retry_limit})")
 
             else:
-                # response = self._get_ai_reply(
-                #     message_sequence=input_message_sequence,
-                #     stream=stream,
-                # )
-                response = chat_completion_response.DUMMY_RESPONSE
+                response = self._get_ai_reply(
+                    message_sequence=input_message_sequence,
+                    stream=stream,
+                )
+                # response = chat_completion_response.DUMMY_RESPONSE
                 pass
             # Step 2: check if LLM wanted to call a function
             # (if yes) Step 3: call the function

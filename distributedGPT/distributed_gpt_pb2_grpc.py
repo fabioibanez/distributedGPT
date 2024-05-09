@@ -54,6 +54,11 @@ class LeaderStub(object):
                 request_serializer=distributed__gpt__pb2.AgentMessage.SerializeToString,
                 response_deserializer=distributed__gpt__pb2.Status.FromString,
                 _registered_method=True)
+        self.sayGoodbye = channel.unary_unary(
+                '/Leader/sayGoodbye',
+                request_serializer=distributed__gpt__pb2.GoodbyeMessage.SerializeToString,
+                response_deserializer=distributed__gpt__pb2.Status.FromString,
+                _registered_method=True)
 
 
 class LeaderServicer(object):
@@ -77,6 +82,12 @@ class LeaderServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def sayGoodbye(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_LeaderServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -93,6 +104,11 @@ def add_LeaderServicer_to_server(servicer, server):
             'processAgentMessage': grpc.unary_unary_rpc_method_handler(
                     servicer.processAgentMessage,
                     request_deserializer=distributed__gpt__pb2.AgentMessage.FromString,
+                    response_serializer=distributed__gpt__pb2.Status.SerializeToString,
+            ),
+            'sayGoodbye': grpc.unary_unary_rpc_method_handler(
+                    servicer.sayGoodbye,
+                    request_deserializer=distributed__gpt__pb2.GoodbyeMessage.FromString,
                     response_serializer=distributed__gpt__pb2.Status.SerializeToString,
             ),
     }
@@ -175,6 +191,33 @@ class Leader(object):
             target,
             '/Leader/processAgentMessage',
             distributed__gpt__pb2.AgentMessage.SerializeToString,
+            distributed__gpt__pb2.Status.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def sayGoodbye(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/Leader/sayGoodbye',
+            distributed__gpt__pb2.GoodbyeMessage.SerializeToString,
             distributed__gpt__pb2.Status.FromString,
             options,
             channel_credentials,

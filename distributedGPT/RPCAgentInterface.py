@@ -24,6 +24,7 @@ class RPCAgentInterface(AgentInterface):
             result : distributed_gpt_pb2.Assignment = stub.giveAgentAssignment(assignment_request)
             process_id, agent_state = parse_assignment(result)
             self.process_id = process_id
+            print("My Process ID is", self.process_id)
             return process_id, agent_state
 
     
@@ -39,6 +40,10 @@ class RPCAgentInterface(AgentInterface):
 
     def function_message(self, msg: str, msg_obj: Message | None = None):
         print("Calling a function!")
+
+    def close(self):
+        # nothing to close on client's end
+        pass
     
     ##### RPCAgentInterface specific methods #####
     
@@ -57,3 +62,9 @@ class RPCAgentInterface(AgentInterface):
             agent_message = distributed_gpt_pb2.AgentMessage(**msg)
             result : distributed_gpt_pb2.Status = stub.processAgentMessage(agent_message)
             return result
+        
+    def say_goodbye(self):
+        with grpc.insecure_channel(self.conn_addr) as channel:
+            stub = distributed_gpt_pb2_grpc.LeaderStub(channel)
+            goodbye_message = distributed_gpt_pb2.GoodbyeMessage(id = self.process_id)
+            result : distributed_gpt_pb2.Status = stub.sayGoodbye(goodbye_message)

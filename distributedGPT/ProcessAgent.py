@@ -61,6 +61,7 @@ class ProcessAgent(Agent):
             # get the latest message available (will always be a new message by construction of while loop)
             agent.read_from_main()
             if agent.message['content'] == "STOP":
+                agent.interface.say_goodbye()
                 break
             
             # TODO: add a validation routine here that makes sure message scheme is consistent
