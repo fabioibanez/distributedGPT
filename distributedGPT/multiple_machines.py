@@ -6,8 +6,8 @@ from ProcessAgent import ProcessAgent
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--type", required=True, type=str, choices=['client', 'server'])
-    parser.add_argument("--ip", required=True, type=str, default='localhost')
-    parser.add_argument("--port", required=True, type=int, default=50051)
+    parser.add_argument("--ip", required=False, type=str, default='localhost')
+    parser.add_argument("--port", required=False, type=int, default=50051)
     args = parser.parse_args()
     if args.type == "client":
         # spin up a client
