@@ -11,10 +11,11 @@ Status = dict
 
 class RPCAgentInterface(AgentInterface):
         
-    def __init__(self, port: int):
+    def __init__(self, addr:str, port: int):
         # let's set up the rpc
         self.port = port
-        self.conn_addr = f"localhost:{port}"
+        self.addr = addr
+        self.conn_addr = f"{addr}:{port}"
         
     def init(self) -> Tuple[int, AgentState]:
         # we put the fucking rpc client code here
