@@ -39,7 +39,6 @@ class AgentPool:
             print(colored(f"Message from agent {result.src_id}:", "green", attrs=["bold"]))
             result.pprint_message()
             print()
-            # print(type) 
             # relay the message
             
             random_dst_choices = list(range(1, pool.N + 1))
@@ -49,7 +48,6 @@ class AgentPool:
             reroute_msg  = f"Please place the destination ID of your response to be {random_dst}." 
             outgoing_msg = {'src_id': result.src_id, "dst_id": result.dst_id, "content": result.content + reroute_msg}
             
-            # print(f'sending outgoing_msg {outgoing_msg} \n\nto agent with PROC ID {result.dst_id}')
             i += 1
             if i >= 10:
                 pool.broadcast(AgentPool.STOP_MSG)
@@ -58,16 +56,16 @@ class AgentPool:
                 pool.send(AgentMessage(_raw=outgoing_msg, **outgoing_msg))
             
             
-    def __init__(self, N: Annotated[int, "num memgpt agents"], interface_type: InterfaceTypes):
+    def __init__(self, N: Annotated[int, "num memgpt agents"], interface_type: InterfaceTypes, **interface_kwargs):
         # spawn N processes
         self.N = N
         # main process ALWAYS has ID of 0
         self.id = 0
 
         if interface_type == InterfaceTypes.PIPE:
-            self.interface = PoolPipeInterface(self.N)
+            self.interface = PoolPipeInterface(self.N, **interface_kwargs)
         elif interface_type == InterfaceTypes.RPC:
-            self.interface = PoolRPCInterface(self.N)
+            self.interface = PoolRPCInterface(self.N, **interface_kwargs)
         else:
             raise NotImplementedError
     

@@ -63,25 +63,25 @@ class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
 
 
 class PoolRPCInterface(PoolInterface):
-    def __init__(self, N: int):
+    def __init__(self, N: int, addr: str, port: int):
         self.N = N
         # let's set up the rpc
         self.rpc = None
+        self.addr = addr
+        self.port = port
+        self.conn_addr = f"{self.addr}:{self.port}"
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        # self.agent_msg_queue: Deque[distributed_gpt_pb2.AgentMessage] = deque(maxlen=100)
         self.agent_msg_queue: Queue[distributed_gpt_pb2.AgentMessage] = Queue(maxsize=100)
         self.goodbyes : Queue[int] = Queue(maxsize=100)
         for i in range(1, N+1):
             self.goodbyes.put(i)
-        # self.goodbyes: Set[ProcessID] = set(range(1, N+1))
+
         self.out_msg_queue: Dict[ProcessID, Queue[distributed_gpt_pb2.AgentMessage]] \
             = {i: Queue(maxsize=100) for i in range(1, self.N + 1)}
-        # self.out_msg_queue: Dict[ProcessID, Deque[distributed_gpt_pb2.AgentMessage]] \
-        #     = {i : deque(maxlen=100) for i in range(1, self.N + 1)}
         
         distributed_gpt_pb2_grpc.add_LeaderServicer_to_server(LeaderServicer(self), self.server)
         # TODO: do not hardcode the port
-        self.server.add_insecure_port("0.0.0.0:50052")
+        self.server.add_insecure_port(self.conn_addr)
         self.server.start()
         print() 
         print(colored("(SERVER) Started server!", "light_grey"))
@@ -96,7 +96,6 @@ class PoolRPCInterface(PoolInterface):
     
     def _send_message(self, msg: AgentMessage) -> Status:
         msg_obj = distributed_gpt_pb2.AgentMessage(src_id = msg.src_id, dst_id=msg.dst_id, content=msg.content)
-        # self.out_msg_queue[msg.dst_id].append(msg_obj)
         self.out_msg_queue[msg.dst_id].put(msg_obj)
 
         print()
@@ -129,7 +128,6 @@ class PoolRPCInterface(PoolInterface):
     def get_outgoing(self, proc_id: ProcessID) -> distributed_gpt_pb2.AgentMessage:
         msg_available = False
         while self.out_msg_queue[proc_id].empty():
-        # while len(self.out_msg_queue[proc_id]) == 0: 
             if msg_available == False:
                 print()
                 print(f"(SERVER) There is no message for: {proc_id}...")
@@ -138,18 +136,14 @@ class PoolRPCInterface(PoolInterface):
         print()
         print(colored(f"(SERVER) Plucked message for agent {proc_id}", "light_grey"))
         print()
-        # outgoing = self.out_msg_queue[proc_id].popleft()
         outgoing = self.out_msg_queue[proc_id].get()
         return outgoing
         
     def _recv_any(self) -> object:
         while self.agent_msg_queue.empty():
-        # while len(self.agent_msg_queue) == 0:
             # busy wait lol
-            # print("(server) waiting for a message to process...")
             continue
 
-        # msg = self.agent_msg_queue.popleft()
         msg = self.agent_msg_queue.get()
         print()
         print(colored("(SERVER) I can pull a message from the message queue!", "light_grey"))
@@ -159,10 +153,8 @@ class PoolRPCInterface(PoolInterface):
         return msg
     
     def push_message(self, msg: distributed_gpt_pb2.AgentMessage):
-        # self.agent_msg_queue.append(msg)
         self.agent_msg_queue.put(msg)
     
     def ack_goodbye(self, process_id: ProcessID):
-        # self.goodbyes.discard(process_id)
         self.goodbyes.get()
         self.goodbyes.task_done()
