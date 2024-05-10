@@ -4,6 +4,7 @@ from PoolInterface import PoolInterface
 from concurrent import futures
 from Custodian import MultiAgentCustodian
 from collections import deque
+from queue import Queue
 from messages import AgentMessage
 from termcolor import colored
 
@@ -67,14 +68,20 @@ class PoolRPCInterface(PoolInterface):
         # let's set up the rpc
         self.rpc = None
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        self.agent_msg_queue: Deque[distributed_gpt_pb2.AgentMessage] = deque(maxlen=100)
-        self.goodbyes: Set[ProcessID] = set(range(1, N+1))
-        self.out_msg_queue: Dict[ProcessID, Deque[distributed_gpt_pb2.AgentMessage]] \
-            = {i : deque(maxlen=100) for i in range(1, self.N + 1)}
+        # self.agent_msg_queue: Deque[distributed_gpt_pb2.AgentMessage] = deque(maxlen=100)
+        self.agent_msg_queue: Queue[distributed_gpt_pb2.AgentMessage] = Queue(maxsize=100)
+        self.goodbyes : Queue[int] = Queue(maxsize=100)
+        for i in range(1, N+1):
+            self.goodbyes.put(i)
+        # self.goodbyes: Set[ProcessID] = set(range(1, N+1))
+        self.out_msg_queue: Dict[ProcessID, Queue[distributed_gpt_pb2.AgentMessage]] \
+            = {i: Queue(maxsize=100) for i in range(1, self.N + 1)}
+        # self.out_msg_queue: Dict[ProcessID, Deque[distributed_gpt_pb2.AgentMessage]] \
+        #     = {i : deque(maxlen=100) for i in range(1, self.N + 1)}
         
         distributed_gpt_pb2_grpc.add_LeaderServicer_to_server(LeaderServicer(self), self.server)
         # TODO: do not hardcode the port
-        self.server.add_insecure_port("[::]:50051")
+        self.server.add_insecure_port("0.0.0.0:50052")
         self.server.start()
         print() 
         print(colored("(SERVER) Started server!", "light_grey"))
@@ -89,7 +96,8 @@ class PoolRPCInterface(PoolInterface):
     
     def _send_message(self, msg: AgentMessage) -> Status:
         msg_obj = distributed_gpt_pb2.AgentMessage(src_id = msg.src_id, dst_id=msg.dst_id, content=msg.content)
-        self.out_msg_queue[msg.dst_id].append(msg_obj)
+        # self.out_msg_queue[msg.dst_id].append(msg_obj)
+        self.out_msg_queue[msg.dst_id].put(msg_obj)
 
         print()
         print(colored(f"(SERVER) Put a message from agent {msg.src_id} addressed to agent {msg.dst_id} in queue!", "light_grey"))
@@ -103,11 +111,10 @@ class PoolRPCInterface(PoolInterface):
         pass
     
     def join_processes(self) -> None:
-        while len(self.goodbyes) != 0: continue
+        self.goodbyes.join()
         print()
         print(colored("(SERVER) Ok! All clients have closed. I can close now.", "light_grey"))
         print()
-        pass
     
     ##### PoolRPCInterface specific methods #####
 
@@ -121,7 +128,8 @@ class PoolRPCInterface(PoolInterface):
     
     def get_outgoing(self, proc_id: ProcessID) -> distributed_gpt_pb2.AgentMessage:
         msg_available = False
-        while len(self.out_msg_queue[proc_id]) == 0: 
+        while self.out_msg_queue[proc_id].empty():
+        # while len(self.out_msg_queue[proc_id]) == 0: 
             if msg_available == False:
                 print()
                 print(f"(SERVER) There is no message for: {proc_id}...")
@@ -130,15 +138,19 @@ class PoolRPCInterface(PoolInterface):
         print()
         print(colored(f"(SERVER) Plucked message for agent {proc_id}", "light_grey"))
         print()
-        return self.out_msg_queue[proc_id].popleft()
+        # outgoing = self.out_msg_queue[proc_id].popleft()
+        outgoing = self.out_msg_queue[proc_id].get()
+        return outgoing
         
     def _recv_any(self) -> object:
-        while len(self.agent_msg_queue) == 0:
+        while self.agent_msg_queue.empty():
+        # while len(self.agent_msg_queue) == 0:
             # busy wait lol
             # print("(server) waiting for a message to process...")
             continue
 
-        msg = self.agent_msg_queue.popleft()
+        # msg = self.agent_msg_queue.popleft()
+        msg = self.agent_msg_queue.get()
         print()
         print(colored("(SERVER) I can pull a message from the message queue!", "light_grey"))
         print(colored(f"The message is from {msg.src_id} to {msg.dst_id}", "light_grey"))
@@ -147,7 +159,10 @@ class PoolRPCInterface(PoolInterface):
         return msg
     
     def push_message(self, msg: distributed_gpt_pb2.AgentMessage):
-        self.agent_msg_queue.append(msg)
+        # self.agent_msg_queue.append(msg)
+        self.agent_msg_queue.put(msg)
     
     def ack_goodbye(self, process_id: ProcessID):
-        self.goodbyes.discard(process_id)
+        # self.goodbyes.discard(process_id)
+        self.goodbyes.get()
+        self.goodbyes.task_done()
