@@ -11,6 +11,7 @@ from termcolor import colored
 import grpc
 import distributed_gpt_pb2_grpc
 import distributed_gpt_pb2
+from threading import Lock
 
 Status = dict
 ProcessID = int
@@ -35,7 +36,9 @@ class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
             for property in function['parameters']['properties']:
                 function['parameters']['properties'][property] = distributed_gpt_pb2.PropertyDescription(**function['parameters']['properties'][property])
                 
+        self.assoc_interface.lock.acquire()
         self.proc_id_counter += 1
+        self.assoc_interface.lock.release()
         print()
         print(colored(f"(SERVER) Assigned ID {self.proc_id_counter} to client with identity {context.peer()}!", "light_grey"))
         print()
@@ -69,6 +72,7 @@ class PoolRPCInterface(PoolInterface):
         self.rpc = None
         self.addr = addr
         self.port = port
+        self.lock = Lock()
         self.conn_addr = f"{self.addr}:{self.port}"
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         self.agent_msg_queue: Queue[distributed_gpt_pb2.AgentMessage] = Queue(maxsize=100)

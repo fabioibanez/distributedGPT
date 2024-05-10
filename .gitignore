@@ -4,6 +4,7 @@
 # our virtual environments
 distributedGPT_env
 dGPT-env
+demo_dGPT
 
 # generated files
 **/__pycache__/**
