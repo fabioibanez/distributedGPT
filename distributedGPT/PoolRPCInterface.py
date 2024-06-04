@@ -83,8 +83,9 @@ class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
         return distributed_gpt_pb2.JobResponse(status=self.job_id_to_response[request.ticket].status, response=response)
 
     def giveAgentAssignment(self, request, context):
-        
+        print("before the assignment") 
         agent_state = self.assoc_interface.get_agent_state(self.proc_id_counter)
+        print("made it after the assignment")
         args = vars(agent_state)
         args['user_id'] = str(args['user_id'])
         args['id'] = str(args['id'])
@@ -139,7 +140,6 @@ class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
 
 class PoolRPCInterface(PoolInterface):
     def __init__(self, N: int, addr: str, port: int):
-        print("inside PoolRPCInterface init")
         self.N = N
         # let's set up the rpc
         self.rpc = None
@@ -158,7 +158,6 @@ class PoolRPCInterface(PoolInterface):
         
         try:
             distributed_gpt_pb2_grpc.add_LeaderServicer_to_server(LeaderServicer(self), self.server)
-            print("Servicer added successfully")
         except Exception as e:
             print(f"Failed to add servicer: {e}")
         

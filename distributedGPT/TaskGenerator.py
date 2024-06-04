@@ -26,7 +26,7 @@ if __name__ == "__main__":
     conn_addr = args.ip + ":" + str(args.port)
     with grpc.insecure_channel(conn_addr) as channel:
         stub = distributed_gpt_pb2_grpc.LeaderStub(channel)
-        assignment_request = distributed_gpt_pb2.AssignmentRequest(id="0")
+        assignment_request = distributed_gpt_pb2.AssignmentRequest(id="1")
         result : distributed_gpt_pb2.Assignment = stub.giveAgentAssignment(assignment_request)
         documents = {0: document1_string, 1: document2_string, 3: document3_string}
         job_request : distributed_gpt_pb2.JobRequest = distributed_gpt_pb2.JobRequest(id="0", document=documents)

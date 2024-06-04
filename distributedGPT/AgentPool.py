@@ -60,28 +60,7 @@ class AgentPool:
         should_terminate = False
         i = 0
         while not should_terminate:
-            # server just listens
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-
-
-
-            
-            # STOPS THE COMMUNICATION
-            if i >= 10:
-                pool.broadcast(AgentPool.STOP_MSG)
-                break
-            else:
-                pool.send(AgentMessage(_raw=outgoing_msg, **outgoing_msg))
+            continue
 
             
             
@@ -90,17 +69,13 @@ class AgentPool:
         self.N = N
         # main process ALWAYS has ID of 0
         self.id = 0
-        print("before interface_type if")
         if interface_type == InterfaceTypes.PIPE:
             self.interface = PoolPipeInterface(self.N, **interface_kwargs)
         elif interface_type == InterfaceTypes.RPC:
-            print("inside RPC interface if")
             self.interface = PoolRPCInterface(self.N, **interface_kwargs)
         else:
             raise NotImplementedError
-        print("before start_processes")
         self.interface.start_processes()
-        print("before event loop")
         AgentPool.event_loop(self)
         self.interface.join_processes()
     
