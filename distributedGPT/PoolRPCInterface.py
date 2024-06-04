@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Deque, Dict, Set
+from typing import List, Deque, Dict, Set, Tuple
 from PoolInterface import PoolInterface
 from concurrent import futures
 from Custodian import MultiAgentCustodian
@@ -40,7 +40,7 @@ class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
         self.job_id_counter = 0
         self.job_id_to_response : Dict[int, distributed_gpt_pb2.JobResponse] = {}
         self.llm_connection = gpt4Llm()
-        self.persona_dict: Dict[int, str] = None
+        self.persona_dict: Dict[int, str] = dict()
         # exit(0)
 
     def submitJob(self, request: distributed_gpt_pb2.JobRequest, context):
@@ -52,13 +52,19 @@ class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
         print()
         
         system_msg = DOCUMENT_MAPPING_MESSAGE % json.dumps(self.persona_dict)
-        document_dict = request.content
+        
+        document_dict = dict(request.files)
         prompt = json.dumps(document_dict)
+        breakpoint()
     
-        res : ChatCompletionResponse = self.llm_connection.make_request(persona=system_msg, prompt=prompt, model='gpt-4o')
-        print(res.choices)
-        exit(0)
+        # res : ChatCompletionResponse = self.llm_connection.make_request(persona=system_msg, prompt=prompt, model='gpt-4o')
+        # document_to_agent_mapping = res.content
+        document_to_agent_mapping = {0:1}
 
+        # add request to job queue
+        self.assoc_interface.jobs_queue.put((self.job_id_counter, document_to_agent_mapping, request))
+        self.assoc_interface.dispatch_job()
+        
         self.job_id_counter += 1
         return distributed_gpt_pb2.JobResponse(status=JobStatus.PENDING, response=None)
         
@@ -125,11 +131,12 @@ class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
         
         
         # this message is a response to the leader's dispatch of a task
-        if (request.dst_id == 0):
-            map = self.job_id_to_response[request.job_id]
-            map[request.src_id] = request.content
-        else: # this message is intended for another worker
-            self.assoc_interface.push_message(request)
+        # if (request.dst_id == 0):
+        #     map = self.job_id_to_response[request.job_id]
+        #     map[request.src_id] = request.content
+        # else: # this message is intended for another worker
+        #     self.assoc_interface.push_message(request)
+        self.assoc_interface.push_message(request)
 
         return distributed_gpt_pb2.Status(content="OK!")
     
@@ -148,11 +155,15 @@ class PoolRPCInterface(PoolInterface):
         self.lock = Lock()
         self.conn_addr = f"{self.addr}:{self.port}"
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+        # messages from agent to leader
         self.agent_msg_queue: Queue[distributed_gpt_pb2.AgentMessage] = Queue(maxsize=100)
+        # Queue<mapping, JobRequest>
+        self.jobs_queue : Queue[Tuple[int, dict, distributed_gpt_pb2.JobRequest]] = Queue(maxsize=100)
         self.goodbyes : Queue[int] = Queue(maxsize=100)
         for i in range(1, N+1):
             self.goodbyes.put(i)
 
+        # leader to agent message queue
         self.out_msg_queue: Dict[ProcessID, Queue[distributed_gpt_pb2.AgentMessage]] \
             = {i: Queue(maxsize=100) for i in range(1, self.N + 1)}
         
@@ -200,6 +211,19 @@ class PoolRPCInterface(PoolInterface):
         print()
     
     ##### PoolRPCInterface specific methods #####
+    
+    def dispatch_job(self):
+        job : Tuple[int, dict, distributed_gpt_pb2.JobRequest] = self.jobs_queue.get()
+        job_id = job[0]
+        # document_to_agent_mapping = json.loads(job[1])
+        document_to_agent_mapping = job[1]
+        job_request = job[2]
+        # for each document(k) to agent(v) mapping
+        for k,v in document_to_agent_mapping.items():
+            # TODO, is v a string? 
+            content = LEADER_TO_WORKER_PROLOGUE + job_request.files[k]
+            agent_message = distributed_gpt_pb2.AgentMessage(src_id=0, dst_id=v, job_id=job_id, content=content)
+            self._send_message(agent_message)
 
     def get_agent_state(self, i):
         agent_states = MultiAgentCustodian.init().list_multi_agents()

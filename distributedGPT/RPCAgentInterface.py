@@ -16,9 +16,9 @@ class RPCAgentInterface(AgentInterface):
         self.port = port
         self.addr = addr
         self.conn_addr = f"{addr}:{port}"
+        self.job_id = 0
         
     def init(self) -> Tuple[int, AgentState]:
-        # we put the fucking rpc client code here
         with grpc.insecure_channel(self.conn_addr) as channel:
             stub = distributed_gpt_pb2_grpc.LeaderStub(channel)
             assignment_request = distributed_gpt_pb2.AssignmentRequest(id="0")

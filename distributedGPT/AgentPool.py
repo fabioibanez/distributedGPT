@@ -59,8 +59,14 @@ class AgentPool:
     def event_loop(pool: AgentPool):
         should_terminate = False
         i = 0
+        print("I'm about to enter the event loop")
         while not should_terminate:
-            continue
+            result = pool.recv_any()
+            result : AgentMessage = AgentMessage(_raw=MessageToDict(result, always_print_fields_with_no_presence=True), content=result.content, src_id=result.src_id, dst_id=result.dst_id)
+            print()
+            print(colored(f"Message from agent {result.src_id}:", "green", attrs=["bold"]))
+            result.pprint_message()
+            print()
 
             
             

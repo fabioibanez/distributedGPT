@@ -149,12 +149,14 @@ class Assignment(_message.Message):
     def __init__(self, process_id: _Optional[int] = ..., agent_state: _Optional[_Union[AgentState, _Mapping]] = ...) -> None: ...
 
 class Task(_message.Message):
-    __slots__ = ("src_id", "content")
+    __slots__ = ("src_id", "job_id", "content")
     SRC_ID_FIELD_NUMBER: _ClassVar[int]
+    JOB_ID_FIELD_NUMBER: _ClassVar[int]
     CONTENT_FIELD_NUMBER: _ClassVar[int]
     src_id: int
+    job_id: int
     content: str
-    def __init__(self, src_id: _Optional[int] = ..., content: _Optional[str] = ...) -> None: ...
+    def __init__(self, src_id: _Optional[int] = ..., job_id: _Optional[int] = ..., content: _Optional[str] = ...) -> None: ...
 
 class JobRequest(_message.Message):
     __slots__ = ("content", "files")

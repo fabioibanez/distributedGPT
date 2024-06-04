@@ -69,7 +69,8 @@ class ProcessAgent(Agent):
             
             # this message will be now parsed by the agent, who will give a response to be sent back
             # to the main process
-
+            
+            print(agent.message)
             msg = MessageFactory.create_agent_input(agent.message)
             # print("about to respond to this message:", msg)
             agent.respond(msg)

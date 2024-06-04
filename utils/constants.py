@@ -27,15 +27,3 @@ DOCUMENT_MAPPING_MESSAGE = \
     
     This is the end of the system instruction.
     """
-    
-    
-LEADER_TO_WORKER_PROLOGUE = \
-    """
-    Here you have a file that you are specialized in analyzing. Please find the unhashed value that is encoded in this
-    document and apply your hash function to the value and return the hashed value. ONLY RETURN THE HASHED VALUE BASED 
-    ON YOUR HASH FUNCTION IN YOUR PERSONA, AND NOTHING ELSE. Do not respond with any commentary, your answer should
-    simply be the hashed value.
-    
-    START OF DOCUMENT: 
-    
-    """

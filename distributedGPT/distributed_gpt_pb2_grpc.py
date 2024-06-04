@@ -39,8 +39,8 @@ class LeaderStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.SubmitJob = channel.unary_unary(
-                '/Leader/SubmitJob',
+        self.submitJob = channel.unary_unary(
+                '/Leader/submitJob',
                 request_serializer=distributed__gpt__pb2.JobRequest.SerializeToString,
                 response_deserializer=distributed__gpt__pb2.JobResponse.FromString,
                 _registered_method=True)
@@ -69,7 +69,7 @@ class LeaderStub(object):
 class LeaderServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def SubmitJob(self, request, context):
+    def submitJob(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -102,8 +102,8 @@ class LeaderServicer(object):
 
 def add_LeaderServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'SubmitJob': grpc.unary_unary_rpc_method_handler(
-                    servicer.SubmitJob,
+            'submitJob': grpc.unary_unary_rpc_method_handler(
+                    servicer.submitJob,
                     request_deserializer=distributed__gpt__pb2.JobRequest.FromString,
                     response_serializer=distributed__gpt__pb2.JobResponse.SerializeToString,
             ),
@@ -138,7 +138,7 @@ class Leader(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def SubmitJob(request,
+    def submitJob(request,
             target,
             options=(),
             channel_credentials=None,
@@ -151,7 +151,7 @@ class Leader(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/Leader/SubmitJob',
+            '/Leader/submitJob',
             distributed__gpt__pb2.JobRequest.SerializeToString,
             distributed__gpt__pb2.JobResponse.FromString,
             options,

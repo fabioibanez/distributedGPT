@@ -151,5 +151,6 @@ if __name__ == "__main__":
     # let's modify the first agent's persona
     # custodian.update_agent_persona(agents[0].id, brad_persona)
     # custodian.reset_messages()
-    custodian.delete_multi_agents()
-    # custodian.delete_persona("sama")
+    # custodian.delete_multi_agents()
+    custodian.delete_persona("greg")
+    custodian.delete_persona("mira")
