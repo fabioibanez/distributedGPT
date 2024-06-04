@@ -18,14 +18,16 @@ class GoodbyeMessage(_message.Message):
     def __init__(self, id: _Optional[int] = ...) -> None: ...
 
 class AgentMessage(_message.Message):
-    __slots__ = ("src_id", "dst_id", "content")
+    __slots__ = ("src_id", "dst_id", "job_id", "content")
     SRC_ID_FIELD_NUMBER: _ClassVar[int]
     DST_ID_FIELD_NUMBER: _ClassVar[int]
+    JOB_ID_FIELD_NUMBER: _ClassVar[int]
     CONTENT_FIELD_NUMBER: _ClassVar[int]
     src_id: int
     dst_id: int
+    job_id: int
     content: str
-    def __init__(self, src_id: _Optional[int] = ..., dst_id: _Optional[int] = ..., content: _Optional[str] = ...) -> None: ...
+    def __init__(self, src_id: _Optional[int] = ..., dst_id: _Optional[int] = ..., job_id: _Optional[int] = ..., content: _Optional[str] = ...) -> None: ...
 
 class TaskRequest(_message.Message):
     __slots__ = ("id",)
@@ -153,3 +155,39 @@ class Task(_message.Message):
     src_id: int
     content: str
     def __init__(self, src_id: _Optional[int] = ..., content: _Optional[str] = ...) -> None: ...
+
+class JobRequest(_message.Message):
+    __slots__ = ("content", "files")
+    class FilesEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: int
+        value: str
+        def __init__(self, key: _Optional[int] = ..., value: _Optional[str] = ...) -> None: ...
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    FILES_FIELD_NUMBER: _ClassVar[int]
+    content: str
+    files: _containers.ScalarMap[int, str]
+    def __init__(self, content: _Optional[str] = ..., files: _Optional[_Mapping[int, str]] = ...) -> None: ...
+
+class AgentResult(_message.Message):
+    __slots__ = ("hashed_number",)
+    HASHED_NUMBER_FIELD_NUMBER: _ClassVar[int]
+    hashed_number: int
+    def __init__(self, hashed_number: _Optional[int] = ...) -> None: ...
+
+class JobResponse(_message.Message):
+    __slots__ = ("status", "response")
+    class ResponseEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: int
+        value: AgentResult
+        def __init__(self, key: _Optional[int] = ..., value: _Optional[_Union[AgentResult, _Mapping]] = ...) -> None: ...
+    STATUS_FIELD_NUMBER: _ClassVar[int]
+    RESPONSE_FIELD_NUMBER: _ClassVar[int]
+    status: int
+    response: _containers.MessageMap[int, AgentResult]
+    def __init__(self, status: _Optional[int] = ..., response: _Optional[_Mapping[int, AgentResult]] = ...) -> None: ...

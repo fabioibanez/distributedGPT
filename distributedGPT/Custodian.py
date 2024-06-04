@@ -81,6 +81,15 @@ class MultiAgentCustodian:
         ms.delete_agents_having_preset(user_id, config.preset)
     
     @staticmethod
+    def delete_persona(persona: str):
+        assert MultiAgentCustodian._custodian is not None, "you must have initialized the Custodian class via init()"
+        # access the metadata store
+        ms : MetadataStore   = MultiAgentCustodian._custodian.state.metadata_store
+        config: MemGPTConfig = MultiAgentCustodian._custodian.state.config
+        user_id = uuid.UUID(config.anon_clientid)
+        ms.delete_persona(persona, user_id)
+    
+    @staticmethod
     def create_multi_agents(N: int):
         """creates N agents in the system that follow the multiagent framework"""
         assert MultiAgentCustodian._custodian is not None, "you must have initialized the Custodian class via init()"
@@ -137,9 +146,10 @@ class MultiAgentCustodian:
 if __name__ == "__main__":
     custodian = MultiAgentCustodian
     custodian.init()
-    agents = custodian.list_multi_agents()
-    brad_persona = get_persona_text("brad")
+    # agents = custodian.list_multi_agents()
+    # brad_persona = get_persona_text("brad")
     # let's modify the first agent's persona
     # custodian.update_agent_persona(agents[0].id, brad_persona)
     # custodian.reset_messages()
     custodian.delete_multi_agents()
+    # custodian.delete_persona("sama")

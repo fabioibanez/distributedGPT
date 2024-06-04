@@ -15,4 +15,4 @@ if __name__ == "__main__":
         ProcessAgent.event_loop(agent)
     else:
         # spin up a server
-        AgentPool(5, InterfaceTypes.RPC, addr=args.ip, port=args.port)
+        AgentPool(3, InterfaceTypes.RPC, addr=args.ip, port=args.port)

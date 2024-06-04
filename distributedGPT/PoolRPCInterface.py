@@ -8,6 +8,13 @@ from queue import Queue
 from messages import AgentMessage
 from termcolor import colored
 
+from utils.llmAPI import gpt4Llm
+from utils.constants import *
+
+from memgpt.models.chat_completion_response import ChatCompletionResponse
+
+import json
+
 import grpc
 import distributed_gpt_pb2_grpc
 import distributed_gpt_pb2
@@ -16,11 +23,64 @@ from threading import Lock
 Status = dict
 ProcessID = int
 
+
 class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
+    
+    @staticmethod
+    def data_structures() -> Dict[str, str]:
+        return {
+            "job_id_to_response": "a map from a user submitted job to the response struct for that job",
+        }
+     
+    
     def __init__(self, assoc_interface: PoolRPCInterface):
         super().__init__()
         self.assoc_interface = assoc_interface
         self.proc_id_counter = 0
+        self.job_id_counter = 0
+        self.job_id_to_response : Dict[int, distributed_gpt_pb2.JobResponse] = {}
+        self.llm_connection = gpt4Llm()
+        self.persona_dict: Dict[int, str] = None
+        exit(0)
+
+    def submitJob(self, request: distributed_gpt_pb2.JobRequest, context):
+        """
+        Returns a ticket to the job requestor so that they can query the state of a job
+        """
+        print()
+        print(colored(f"(SERVER) Got a job from client with identity {context.peer()}!", Logging.INFO.value))
+        print()
+        
+        system_msg = DOCUMENT_MAPPING_MESSAGE % json.dumps(self.persona_dict)
+        document_dict = request.content
+        prompt = json.dumps(document_dict)
+    
+        res : ChatCompletionResponse = self.llm_connection.make_request(persona=system_msg, prompt=prompt, model='gpt-4o')
+        print(res.choices)
+        exit(0)
+
+        self.job_id_counter += 1
+        return distributed_gpt_pb2.JobResponse(status=JobStatus.PENDING, response=None)
+        
+    def getJob(self, request, context):
+        """
+        Returns an object with the status of a job and the result of the job
+        """
+        print()
+        print(colored(f"(SERVER) Got a job status request from client with identity {context.peer()}!", Logging.INFO.value))
+        print()
+        if (request.ticket not in self.job_id_to_response):
+            return distributed_gpt_pb2.JobResponse(status=JobStatus.FAIL, response=None)
+        
+        # lazily update the job status if all of the workers have responded
+        if (None not in self.job_id_to_response[request.ticket].values()):
+            self.job_request_status[request.ticket] = JobStatus.COMPLETED
+            response = self.job_id_to_response[request.ticket]
+        else:
+            self.job_request_status[request.ticket] = JobStatus.PENDING
+            response = None
+                
+        return distributed_gpt_pb2.JobResponse(status=self.job_id_to_response[request.ticket].status, response=response)
 
     def giveAgentAssignment(self, request, context):
         
@@ -41,13 +101,13 @@ class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
         self.assoc_interface.lock.release()
         
         # add persona to the interface
-        self.assoc_interface.agent_personas[self.proc_id_counter] = args['persona']
+        self.persona_dict[self.proc_id_counter] = args['persona']
         
         print()
         print(colored(f"(SERVER) Assigned ID {self.proc_id_counter} to client with identity {context.peer()}!", "light_grey"))
         print()
         return distributed_gpt_pb2.Assignment(process_id=self.proc_id_counter, agent_state=distributed_gpt_pb2.AgentState(**args))
-    
+      
     def giveAgentMessage(self, request: distributed_gpt_pb2.TaskRequest, context):
         # pluck the message from the queue
         print()
@@ -58,10 +118,18 @@ class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
         return distributed_gpt_pb2.Task(src_id=agent_message.src_id, content=agent_message.content)
     
     def processAgentMessage(self, request: distributed_gpt_pb2.AgentMessage, context):
-        self.assoc_interface.push_message(request)
         print()
         print(colored(f"(SERVER) Got a message from agent {request.src_id}", 'light_grey'))
         print()
+        
+        
+        # this message is a response to the leader's dispatch of a task
+        if (request.dst_id == 0):
+            map = self.job_id_to_response[request.job_id]
+            map[request.src_id] = request.content
+        else: # this message is intended for another worker
+            self.assoc_interface.push_message(request)
+
         return distributed_gpt_pb2.Status(content="OK!")
     
     def sayGoodbye(self, request: distributed_gpt_pb2.GoodbyeMessage, context):
@@ -102,12 +170,12 @@ class PoolRPCInterface(PoolInterface):
     def _broadcast(self, msg: dict) -> Status:
         for i in range(1, self.N + 1):
             msg.update({"dst_id": i})
-            self._send_message(AgentMessage(_raw = msg, src_id=msg['src_id'], dst_id=msg['dst_id'], content=msg['content'])) 
+            self._send_message(AgentMessage(_raw = msg, src_id=msg['src_id'], dst_id=msg['dst_id'], job_id=msg['job_id'], content=msg['content']))
 
         return {}
     
     def _send_message(self, msg: AgentMessage) -> Status:
-        msg_obj = distributed_gpt_pb2.AgentMessage(src_id = msg.src_id, dst_id=msg.dst_id, content=msg.content)
+        msg_obj = distributed_gpt_pb2.AgentMessage(src_id = msg.src_id, dst_id=msg.dst_id, job_id=msg.job_id, content=msg.content)
         self.out_msg_queue[msg.dst_id].put(msg_obj)
 
         print()

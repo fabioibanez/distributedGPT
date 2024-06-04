@@ -25,7 +25,7 @@ class AgentPool:
         outgoing_msg = {
             "src_id": 2,
             "dst_id": 1,
-            "content": "What is your name? And could you tell me more about yourself? Please place the destination ID of your response to be 3."
+            "content": "What is your name? And could you tell me more about yourself? Let's have a conversation about differential equations. Please place the destination ID of your response to be 3."
         }
         
         pool.send(AgentMessage(_raw=outgoing_msg, **outgoing_msg))

@@ -1,33 +1,30 @@
-'''
- ** TODO **
-1. make a default task, which is just the one we outlined in the vision document
-2. set up a datastructure for the leader to keep state on all of the workers and their
-   personas
-3. Write code that puts files in a mode that GPT API call can parse it/interpret it
-4. Get n distinct hash functions
 
+import grpc
+import distributed_gpt_pb2, distributed_gpt_pb2_grpc
+import argparse
+            
+def stringify_files(path):
+    with open(path, 'r') as file:
+        return file.read()
 
-*** The client should be able to make a gRPC call to invoke a task getting sovled ***
-'''
-
-from AgentPool import AgentPool, InterfaceTypes
-
-DEFAULT_TASK = ""
-
-class TaskGenerator:
-    def __init__(self, num_agents: int, addr: str = "localhost", port: int = 50051) -> None:
-        self.task = task
-        self.num_agents = num_agents
-        self.agent_pool = AgentPool(num_agents, InterfaceTypes.RPC, addr=addr, port=port)
-        
-    def run_task(self, task: str):
-        raise NotImplementedError
-    
-    
 if __name__ == "__main__":
-    task = TaskGenerator(DEFAULT_TASK, 1)
-    task.run_task()
+    document1_path = "../utils/documents/xml/test.xml"
+    document2_path = "../utils/documents/py/test.py"
+    document3_path = "../utils/documents/csv/test.csv"
     
-    
-    
-    
+    document1_string = stringify_files(document1_path)
+    document2_string = stringify_files(document2_path)
+    document3_string = stringify_files(document3_path)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--type", required=True, type=str, choices=['client', 'server'])
+    parser.add_argument("--ip", required=False, type=str, default='localhost')
+    parser.add_argument("--port", required=False, type=int, default=50051)
+    args = parser.parse_args()
+    conn_addr = args.ip + ":" + str(args.port)
+    with grpc.insecure_channel(conn_addr) as channel:
+        stub = distributed_gpt_pb2_grpc.LeaderStub(channel)
+        assignment_request = distributed_gpt_pb2.AssignmentRequest(id="0")
+        result : distributed_gpt_pb2.Assignment = stub.giveAgentAssignment(assignment_request)
+        documents = {0: document1_string, 1: document2_string, 3: document3_string}
+        job_request : distributed_gpt_pb2.JobRequest = distributed_gpt_pb2.JobRequest(id="0", document=documents)

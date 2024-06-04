@@ -39,6 +39,11 @@ class LeaderStub(object):
         Args:
             channel: A grpc.Channel.
         """
+        self.SubmitJob = channel.unary_unary(
+                '/Leader/SubmitJob',
+                request_serializer=distributed__gpt__pb2.JobRequest.SerializeToString,
+                response_deserializer=distributed__gpt__pb2.JobResponse.FromString,
+                _registered_method=True)
         self.giveAgentAssignment = channel.unary_unary(
                 '/Leader/giveAgentAssignment',
                 request_serializer=distributed__gpt__pb2.AssignmentRequest.SerializeToString,
@@ -63,6 +68,12 @@ class LeaderStub(object):
 
 class LeaderServicer(object):
     """Missing associated documentation comment in .proto file."""
+
+    def SubmitJob(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def giveAgentAssignment(self, request, context):
         """Missing associated documentation comment in .proto file."""
@@ -91,6 +102,11 @@ class LeaderServicer(object):
 
 def add_LeaderServicer_to_server(servicer, server):
     rpc_method_handlers = {
+            'SubmitJob': grpc.unary_unary_rpc_method_handler(
+                    servicer.SubmitJob,
+                    request_deserializer=distributed__gpt__pb2.JobRequest.FromString,
+                    response_serializer=distributed__gpt__pb2.JobResponse.SerializeToString,
+            ),
             'giveAgentAssignment': grpc.unary_unary_rpc_method_handler(
                     servicer.giveAgentAssignment,
                     request_deserializer=distributed__gpt__pb2.AssignmentRequest.FromString,
@@ -120,6 +136,33 @@ def add_LeaderServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class Leader(object):
     """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def SubmitJob(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/Leader/SubmitJob',
+            distributed__gpt__pb2.JobRequest.SerializeToString,
+            distributed__gpt__pb2.JobResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
 
     @staticmethod
     def giveAgentAssignment(request,
