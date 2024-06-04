@@ -1,4 +1,3 @@
-# TODO add gRPC driver code here
 import argparse
 from AgentPool import AgentPool, InterfaceTypes
 from ProcessAgent import ProcessAgent

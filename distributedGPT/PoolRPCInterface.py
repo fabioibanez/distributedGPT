@@ -41,7 +41,7 @@ class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
         self.job_id_to_response : Dict[int, distributed_gpt_pb2.JobResponse] = {}
         self.llm_connection = gpt4Llm()
         self.persona_dict: Dict[int, str] = None
-        exit(0)
+        # exit(0)
 
     def submitJob(self, request: distributed_gpt_pb2.JobRequest, context):
         """
@@ -139,6 +139,7 @@ class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
 
 class PoolRPCInterface(PoolInterface):
     def __init__(self, N: int, addr: str, port: int):
+        print("inside PoolRPCInterface init")
         self.N = N
         # let's set up the rpc
         self.rpc = None
@@ -155,7 +156,11 @@ class PoolRPCInterface(PoolInterface):
         self.out_msg_queue: Dict[ProcessID, Queue[distributed_gpt_pb2.AgentMessage]] \
             = {i: Queue(maxsize=100) for i in range(1, self.N + 1)}
         
-        distributed_gpt_pb2_grpc.add_LeaderServicer_to_server(LeaderServicer(self), self.server)
+        try:
+            distributed_gpt_pb2_grpc.add_LeaderServicer_to_server(LeaderServicer(self), self.server)
+            print("Servicer added successfully")
+        except Exception as e:
+            print(f"Failed to add servicer: {e}")
         
         # Populate this with the agent personas
         self.agent_personas : Dict[ProcessID, str] = {}
