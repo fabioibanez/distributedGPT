@@ -39,6 +39,10 @@ class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
         self.assoc_interface.lock.acquire()
         self.proc_id_counter += 1
         self.assoc_interface.lock.release()
+        
+        # add persona to the interface
+        self.assoc_interface.agent_personas[self.proc_id_counter] = args['persona']
+        
         print()
         print(colored(f"(SERVER) Assigned ID {self.proc_id_counter} to client with identity {context.peer()}!", "light_grey"))
         print()
@@ -84,6 +88,10 @@ class PoolRPCInterface(PoolInterface):
             = {i: Queue(maxsize=100) for i in range(1, self.N + 1)}
         
         distributed_gpt_pb2_grpc.add_LeaderServicer_to_server(LeaderServicer(self), self.server)
+        
+        # Populate this with the agent personas
+        self.agent_personas : Dict[ProcessID, str] = {}
+        
         # TODO: do not hardcode the port
         self.server.add_insecure_port(self.conn_addr)
         self.server.start()
