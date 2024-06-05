@@ -16,7 +16,7 @@ import json
 import grpc
 import distributed_gpt_pb2_grpc
 import distributed_gpt_pb2
-from threading import Lock
+from threading import Lock, Condition
 
 Status = dict
 ProcessID = int
@@ -159,6 +159,10 @@ class PoolRPCInterface(PoolInterface):
         self.goodbyes : Queue[int] = Queue(maxsize=100)
         for i in range(1, N+1):
             self.goodbyes.put(i)
+            
+        self.locks: Dict[ProcessID, Lock] = {
+            i: Lock() for i in range(1, self.N + 1)
+        }
 
         # leader to agent message queue
         self.out_msg_queue: Dict[ProcessID, Queue[distributed_gpt_pb2.AgentMessage]] \
@@ -192,7 +196,6 @@ class PoolRPCInterface(PoolInterface):
         msg_obj = distributed_gpt_pb2.AgentMessage(
             src_id = msg.src_id, dst_id=msg.dst_id, job_id=msg.job_id, content=msg.content
         )
-
         self.out_msg_queue[msg.dst_id].put(msg_obj)
 
         log(
@@ -238,6 +241,7 @@ class PoolRPCInterface(PoolInterface):
         self.server.stop(grace=10)
     
     def get_outgoing(self, proc_id: ProcessID) -> distributed_gpt_pb2.AgentMessage:
+        
         msg_available = False
         while self.out_msg_queue[proc_id].empty():
             if msg_available == False:
@@ -245,7 +249,9 @@ class PoolRPCInterface(PoolInterface):
                 msg_available = True
                 
         log(f"(SERVER) Plucked message for agent {proc_id}", Logging.INFO.value)
+        self.locks[proc_id].acquire()
         outgoing = self.out_msg_queue[proc_id].get()
+        self.locks[proc_id].release()
         return outgoing
         
     def _recv_any(self) -> object:

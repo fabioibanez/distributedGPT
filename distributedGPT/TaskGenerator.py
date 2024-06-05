@@ -1,34 +1,96 @@
 
 import grpc
 import distributed_gpt_pb2, distributed_gpt_pb2_grpc
+import random
+import os
 import argparse
+from abc import ABC, abstractmethod
             
+
+class TaskGenerator(ABC):
+    @abstractmethod
+    def get_files(self):
+        pass
+    @abstractmethod
+    def read_files(self):
+        pass
+    
+    @abstractmethod
+    def next(self):
+        pass
+
+class DocTask(TaskGenerator):
+    
+    def __init__(self, document_types = []):
+        self.document_types = document_types
+        self.documents = self.read_files()
+    
+    # get_files() returns a list of filepaths 
+    def get_files(self): 
+        doc_dir_base = "../utils/documents/"
+        # do a crawl for each doc dir
+        filepaths = []
+        for t in self.document_types:
+            doc_dir = doc_dir_base + t
+            for root, _, files in os.walk(doc_dir):
+                for file in files:
+                    file_splitted = file.split('.')
+                    if file_splitted[-1] == 'json': continue
+                    file_path = os.path.join(root, file)
+                    filepaths.append(file_path)
+        return filepaths
+
+    def read_files(self):
+        files = self.get_files()
+        documents = dict()
+        for f in files:
+            handle = open(f, 'r')
+            documents[f] = handle.read()
+            handle.close()
+        return documents
+    
+    def next(self):
+        document_keys = list(self.documents.keys())
+        sampled_document_keys = random.choices(document_keys, k=3)
+        documents = dict()
+
+        for k in sampled_document_keys:
+            documents[k] = self.documents[k]
+
+        return documents
+
+
+class HumanClient:
+    def __init__(self, ip: str, port: int, task_generator: TaskGenerator):
+        self.task_gen = task_generator
+        self.ip   = ip
+        self.port = port
+        self.conn_addr = self.ip + ":" + str(self.port)
+    
+    def submit_job(self):
+        documents  = self.task_gen.next()
+        print(documents)
+
+        with grpc.insecure_channel(self.conn_addr) as channel:
+            stub = distributed_gpt_pb2_grpc.LeaderStub(channel)
+            document_strings = {i : documents[k] for i, k in enumerate(documents)}
+            job_request : distributed_gpt_pb2.JobRequest = distributed_gpt_pb2.JobRequest(content="0", files=document_strings) 
+            result = stub.submitJob(job_request) 
+            print(result)
+
+
 def stringify_files(path):
     with open(path, 'r') as file:
         return file.read()
 
 if __name__ == "__main__":
-    # Load documents for task
-    document1_path = "../utils/documents/xml/test.xml"
-    document2_path = "../utils/documents/py/test.py"
-    document3_path = "../utils/documents/csv/test.csv"
     
-    document1_string = stringify_files(document1_path)
-    document2_string = stringify_files(document2_path)
-    document3_string = stringify_files(document3_path)
+    doctask = DocTask(['xml'])
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip", required=False, type=str, default='localhost')
     parser.add_argument("--port", required=False, type=int, default=50051)
     args = parser.parse_args()
-    
-    conn_addr = args.ip + ":" + str(args.port)
-    with grpc.insecure_channel(conn_addr) as channel:
-        stub = distributed_gpt_pb2_grpc.LeaderStub(channel)
-        # for i in range(1, 4):
-        #     assignment_request = distributed_gpt_pb2.AssignmentRequest(id=f"{i}")
-        #     result : distributed_gpt_pb2.Assignment = stub.giveAgentAssignment(assignment_request)
-        documents = {0: document1_string, 1: document2_string, 2: document3_string}
-        # documents = {0: document1_string}
-        job_request : distributed_gpt_pb2.JobRequest = distributed_gpt_pb2.JobRequest(content="0", files=documents)
-        result = stub.submitJob(job_request)
+
+    human = HumanClient(args.ip, args.port, doctask)
+    human.submit_job()

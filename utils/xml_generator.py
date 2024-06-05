@@ -1,5 +1,7 @@
 from document_generators import documentPrompt, documentGenerator
+import random
 from dataclasses import dataclass
+import string
 import json as JSON
 import os
 
@@ -34,21 +36,39 @@ class xmlDocumentGenerator(documentGenerator):
     
     def generate_document(self, document_prompt_class: xmlDocumentPrompt):
         prompt_stringified = document_prompt_class.stringify()
-        response = self.llm.make_request(prompt_stringified, self.system_persona, model='gpt-4').content
-        filename = f"documents/xml/generated_document_{document_prompt_class.__class__.__name__}.xml"
-        counter  = 1
-        while os.path.exists(filename):
-            filename = f"documents/xml/generated_document_{document_prompt_class.__class__.__name__}_{counter}.xml"
+        response = self.llm.make_request(prompt_stringified, self.system_persona, model='gpt-4o').content
+    
+        # make a folder for this document 
+        base = f"documents/xml/generated_document_{document_prompt_class.__class__.__name__}_0/"
+
+        counter = 0
+        while os.path.isdir(base):
             counter += 1
+            base = f"documents/xml/generated_document_{document_prompt_class.__class__.__name__}_{counter}/"
+            
+        os.makedirs(base, exist_ok=True)
+
+        xml_file = f"generated_document_{document_prompt_class.__class__.__name__}_{counter}.xml"
+        json_file = f"generated_document_{document_prompt_class.__class__.__name__}_{counter}.json"
         
-        with open(filename, "w") as file:
+        xml_filename  = base + xml_file
+        json_filename = base + json_file
+            
+        with open(xml_filename, "w+") as file:
             file.write(response)
+        
+        with open(json_filename, "w+") as file:
+            JSON.dump(vars(document_prompt_class), file)
             
         return response
 
 
 if __name__ == "__main__":
     generator = xmlDocumentGenerator(SYSTEM_PERSONA)
-    revealing_context = """the name attribute of the <password> tag contains the pre-hash value."""
-    prompt = xmlDocumentGenerator.xmlDocumentPrompt(58, revealing_context)
-    print(generator.generate_document(prompt))
+    for i in range(5):
+        random_attribute = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+        random_tag = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+        revealing_context = f"""the {random_attribute} attribute of the <{random_tag}> tag contains the pre-hash value."""
+        prehash = random.randint(0, 100)
+        prompt = xmlDocumentGenerator.xmlDocumentPrompt(prehash, revealing_context)
+        print(generator.generate_document(prompt))

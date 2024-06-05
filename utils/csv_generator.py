@@ -1,4 +1,5 @@
 from document_generators import documentPrompt, documentGenerator
+import random
 from dataclasses import dataclass
 import json as JSON
 import os
@@ -31,8 +32,8 @@ SYSTEM_PERSONA = \
     arbitrarily.
     
     In your response, provide just the CSV content. Do not add any miscellaneous text. Furthermore,
-    there is no need to format anything with 3 backticks, just output the raw content with the revealing context
-    and the pre-hash value somewhere in the content.
+    there is no need to format anything with 3 backticks. JUST output the raw content WITH the revealing context
+    AND the pre-hash value somewhere in the content.
     """
 
 class csvDocumentGenerator(documentGenerator):
@@ -47,20 +48,38 @@ class csvDocumentGenerator(documentGenerator):
     
     def generate_document(self, document_prompt_class: csvDocumentPrompt):
         prompt_stringified = document_prompt_class.stringify()
-        response = self.llm.make_request(prompt_stringified, self.system_persona, model="gpt-4").content
-        filename = f"documents/csv/generated_document_{document_prompt_class.__class__.__name__}.csv"
-        counter  = 1
-        while os.path.exists(filename):
-            filename = f"documents/csv/generated_document_{document_prompt_class.__class__.__name__}_{counter}.csv"
-            counter += 1
+        response = self.llm.make_request(prompt_stringified, self.system_persona, model="gpt-4o").content
         
-        with open(filename, "w") as file:
+        # make a folder for this document 
+        base = f"documents/csv/generated_document_{document_prompt_class.__class__.__name__}_0/"
+
+        counter = 0
+        while os.path.isdir(base):
+            counter += 1
+            base = f"documents/csv/generated_document_{document_prompt_class.__class__.__name__}_{counter}/"
+            
+        os.makedirs(base, exist_ok=True)
+
+        csv_file = f"generated_document_{document_prompt_class.__class__.__name__}_{counter}.csv"
+        json_file = f"generated_document_{document_prompt_class.__class__.__name__}_{counter}.json"
+        
+        csv_filename  = base + csv_file
+        json_filename = base + json_file
+            
+        with open(csv_filename, "w+") as file:
             file.write(response)
+        
+        with open(json_filename, "w+") as file:
+            JSON.dump(vars(document_prompt_class), file)
             
         return response
 
 if __name__ == "__main__":
     generator = csvDocumentGenerator(SYSTEM_PERSONA)
-    revealing_context = """the 5th row and 5th column contain the pre-hash value"""
-    prompt = csvDocumentGenerator.csvDocumentPrompt(58, revealing_context)
-    print(generator.generate_document(prompt))
+    for i in range(5):
+        random_row    = random.randint(1, 11)
+        random_col    = random.randint(1, 11)
+        prehash_value = random.randint(0, 100)
+        revealing_context = f"""the entry at row number {random_row} and column number {random_col} contain the pre-hash value"""
+        prompt = csvDocumentGenerator.csvDocumentPrompt(prehash_value, revealing_context)
+        print(generator.generate_document(prompt))
