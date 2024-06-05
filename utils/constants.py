@@ -1,7 +1,8 @@
 from enum import Enum
 
 class Logging(Enum):
-    INFO = "light_grey"
+    INFO      = "light_grey"
+    IMPORTANT = "light_yellow"
 
 class JobStatus(Enum):
     FAIL      = -1
@@ -23,7 +24,8 @@ DOCUMENT_MAPPING_MESSAGE = \
     BASED ON THE CONTENT OF THE DOCUMENT. For each prompt, your job will be to construct a dictionary 
     that maps the document ID to the ID of the persona that best pertains to that document. 
     For example, a Python document should be mapped to a persona that is concerned with all things software engineering. 
-    Only output this dictionary, no commentary please of any kind.
+    Only output this dictionary, no commentary please of any kind. The output must be raw text,
+    no markdown or any special formatting.
     
     This is the end of the system instruction.
     """

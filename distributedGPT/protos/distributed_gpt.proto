@@ -1,5 +1,11 @@
-syntax = "proto3";
-
+syntax = "proto3"; 
+/*
+NAMING:
+Client : a client is a human user who submits jobs (in this case documents) to the system
+Agent  : a LLM-using entity that responds to requests given to it by other agents or a human
+Worker : a agent that executes tasks specified by a job
+Leader : a special agent that interfaces with client, and orchestrates communication btwn workers
+*/
 service Leader {
     rpc submitJob(JobRequest) returns (JobResponse) {}
     rpc giveAgentAssignment (AssignmentRequest) returns (Assignment) {}
@@ -106,6 +112,7 @@ message AgentResult {
     int32 hashed_number = 1;
 }
 
+// JobResponse is what the leader sends back to a client
 message JobResponse {
     int32 status = 1;
     map<int32, AgentResult> response = 2;

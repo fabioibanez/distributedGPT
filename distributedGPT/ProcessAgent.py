@@ -8,7 +8,7 @@ from typing import List, Union
 from dataclasses import dataclass
 from memgpt.interface import AgentInterface
 from RPCAgentInterface import RPCAgentInterface
-
+from utils.constants import *
 
 @dataclass
 class StepResponse:
@@ -45,6 +45,9 @@ class ProcessAgent(Agent):
             interface (AgentInterface): _description_
         """
         super().__init__(interface=interface, agent_state=agent_state)
+
+        log(self.agent_state.persona, Logging.IMPORTANT.value, attrs=["bold"])
+
         # this symbolizes the most recent message that the agent has received from main process
         self.message = None
         self.proc_id = proc_id
@@ -70,7 +73,6 @@ class ProcessAgent(Agent):
             # this message will be now parsed by the agent, who will give a response to be sent back
             # to the main process
             
-            print(agent.message)
             msg = MessageFactory.create_agent_input(agent.message)
             # print("about to respond to this message:", msg)
             agent.respond(msg)

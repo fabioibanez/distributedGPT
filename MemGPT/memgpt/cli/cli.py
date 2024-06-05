@@ -686,6 +686,7 @@ def run(
             # Overwrite fields in the preset if they were specified
             preset_obj.human = ms.get_human(human, user.id).text
             preset_obj.persona = ms.get_persona(persona, user.id).text
+            agent_name = persona.upper()
 
             typer.secho(f"->  🤖 Using persona profile: '{preset_obj.persona_name}'", fg=typer.colors.WHITE)
             typer.secho(f"->  🧑 Using human profile: '{preset_obj.human_name}'", fg=typer.colors.WHITE)

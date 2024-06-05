@@ -18,7 +18,6 @@ if __name__ == "__main__":
     document3_string = stringify_files(document3_path)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--type", required=True, type=str, choices=['client', 'server'], default='client')
     parser.add_argument("--ip", required=False, type=str, default='localhost')
     parser.add_argument("--port", required=False, type=int, default=50051)
     args = parser.parse_args()
@@ -29,7 +28,7 @@ if __name__ == "__main__":
         # for i in range(1, 4):
         #     assignment_request = distributed_gpt_pb2.AssignmentRequest(id=f"{i}")
         #     result : distributed_gpt_pb2.Assignment = stub.giveAgentAssignment(assignment_request)
-        # documents = {0: document1_string, 1: document2_string, 3: document3_string}
-        documents = {0: document1_string}
+        documents = {0: document1_string, 1: document2_string, 2: document3_string}
+        # documents = {0: document1_string}
         job_request : distributed_gpt_pb2.JobRequest = distributed_gpt_pb2.JobRequest(content="0", files=documents)
         result = stub.submitJob(job_request)
