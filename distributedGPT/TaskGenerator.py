@@ -51,7 +51,7 @@ class DocTask(TaskGenerator):
     
     def next(self):
         document_keys = list(self.documents.keys())
-        sampled_document_keys = random.choices(document_keys, k=3)
+        sampled_document_keys = random.sample(document_keys, 1)
         documents = dict()
 
         for k in sampled_document_keys:
@@ -69,7 +69,6 @@ class HumanClient:
     
     def submit_job(self):
         documents  = self.task_gen.next()
-        print(documents)
 
         with grpc.insecure_channel(self.conn_addr) as channel:
             stub = distributed_gpt_pb2_grpc.LeaderStub(channel)
@@ -85,7 +84,7 @@ def stringify_files(path):
 
 if __name__ == "__main__":
     
-    doctask = DocTask(['xml'])
+    doctask = DocTask(['csv'])
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip", required=False, type=str, default='localhost')

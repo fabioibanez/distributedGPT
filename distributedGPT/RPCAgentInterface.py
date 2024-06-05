@@ -5,6 +5,8 @@ import grpc
 import distributed_gpt_pb2, distributed_gpt_pb2_grpc
 from rpc_utils.parsing import parse_assignment, parse_message 
 from messages import Message
+from utils.constants import *
+import json as JSON
 
 Status = dict
 
@@ -25,22 +27,22 @@ class RPCAgentInterface(AgentInterface):
             result : distributed_gpt_pb2.Assignment = stub.giveAgentAssignment(assignment_request)
             process_id, agent_state = parse_assignment(result)
             self.process_id = process_id
-            print("My Process ID is", self.process_id)
+            log(f"My Process ID is {self.process_id}", Logging.IMPORTANT.value)
             return process_id, agent_state
 
     
     def user_message(self, msg: str, msg_obj: Message | None = None):
-        print("Calling user_message")
+        pass
     
     def internal_monologue(self, msg: str, msg_obj: Message | None = None):
-        print("Calling internal_monologue")
+        log(msg, Logging.INFO.value)
     
     def assistant_message(self, msg: str, msg_obj: Message | None = None):
         print("Sending data to leader")
         print("Sent")
 
     def function_message(self, msg: str, msg_obj: Message | None = None):
-        print("Calling a function!")
+        pass
 
     def close(self):
         # nothing to close on client's end
@@ -58,6 +60,8 @@ class RPCAgentInterface(AgentInterface):
             return message
         
     def write_message(self, msg) -> None:
+        log(f"Sending the following message to the leader", Logging.IMPORTANT.value)
+        log(JSON.dumps(msg, indent=1), Logging.DATA.value)
         with grpc.insecure_channel(self.conn_addr) as channel:
             stub = distributed_gpt_pb2_grpc.LeaderStub(channel)
             agent_message = distributed_gpt_pb2.AgentMessage(**msg)

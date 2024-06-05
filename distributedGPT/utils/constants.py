@@ -1,6 +1,11 @@
-from enum import Enum
+from enum import Enum, auto
 from termcolor import colored
 
+class AgentType(Enum):
+    LEADER = 0
+    CLIENT = 1
+    WORKER = 2
+        
 
 class Logging(Enum):
     INFO      = "light_grey"   # use to emit monologues

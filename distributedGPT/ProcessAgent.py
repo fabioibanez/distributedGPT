@@ -47,6 +47,7 @@ class ProcessAgent(Agent):
         super().__init__(interface=interface, agent_state=agent_state)
 
         log(self.agent_state.persona, Logging.IMPORTANT.value, attrs=["bold"])
+        self.agent_type = AgentType.WORKER
 
         # this symbolizes the most recent message that the agent has received from main process
         self.message = None

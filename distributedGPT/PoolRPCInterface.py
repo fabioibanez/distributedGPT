@@ -126,6 +126,10 @@ class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
     def processAgentMessage(self, request: distributed_gpt_pb2.AgentMessage, context):
 
         log(f"(SERVER) Got a message from agent {request.src_id}", Logging.INFO.value)
+        # peek inside the message
+        intended_msg_recipient = request.dst_id
+        if (intended_msg_recipient == AgentType.LEADER.value):
+            print("hi")
         
         # this message is a response to the leader's dispatch of a task
         # if (request.dst_id == 0):
