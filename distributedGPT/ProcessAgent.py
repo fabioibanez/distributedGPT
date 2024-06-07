@@ -8,7 +8,7 @@ from typing import List, Union
 from dataclasses import dataclass
 from memgpt.interface import AgentInterface
 from RPCAgentInterface import RPCAgentInterface
-from utils.constants import *
+from d_utils.constants import *
 
 @dataclass
 class StepResponse:

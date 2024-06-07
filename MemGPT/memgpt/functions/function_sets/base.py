@@ -50,15 +50,13 @@ def send_message_remote(self: Agent, id: int, message: str) -> Optional[str]:
     Returns:
         Optional[str]: None is always returned as this function does not produce a response.
     """
-    # FIXME passing of msg_obj here is a hack, unclear if guaranteed to be the correct reference
-    # self.interface.assistant_message(message)  # , msg_obj=self._messages[-1])
+
     msg_obj = {
         "src_id": self.proc_id,
         "dst_id": id,
         "content": message
     }
-    print(f"(in send_message_remote): agent with PROC ID {self.proc_id} is about to send\n{msg_obj}")
-    # self.interface.assistant_message(msg_obj)
+
     self.interface.write_message(msg_obj)
     return None
 

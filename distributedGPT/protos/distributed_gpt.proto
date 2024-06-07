@@ -1,16 +1,17 @@
 syntax = "proto3"; 
 /*
-NAMING:
-Client : a client is a human user who submits jobs (in this case documents) to the system
-Agent  : a LLM-using entity that responds to requests given to it by other agents or a human
-Worker : a agent that executes tasks specified by a job
-Leader : a special agent that interfaces with client, and orchestrates communication btwn workers
+    NAMING:
+    Client : a client is a human user who submits jobs (in this case documents) to the system
+    Agent  : a LLM-using entity that responds to requests given to it by other agents or a human
+    Worker : a agent that executes tasks specified by a job
+    Leader : a special agent that interfaces with client, & orchestrates communication btwn workers
 */
 service Leader {
     rpc submitJob(JobRequest) returns (JobResponse) {}
+    rpc getJob(JobCompletionRequest) returns (JobResponse) {}
     rpc giveAgentAssignment (AssignmentRequest) returns (Assignment) {}
     rpc giveAgentMessage (TaskRequest) returns (Task) {}
-    rpc processAgentMessage (AgentMessage) returns (Status) {}
+    rpc processAgentMessage (LeaderToWorkerMessage) returns (Status) {}
     rpc sayGoodbye (GoodbyeMessage) returns (Status) {}
 }
 
@@ -22,11 +23,21 @@ message GoodbyeMessage {
     int32 id = 1;
 }
 
-message AgentMessage {
+/* 
+    messages sent from an agent to a worker must contain:
+    src_id : (for LLM) the ID of the agent who has written this message
+    content: (for LLM) the message body itself
+    dst_id : (for backend) the ID of the agent who this message is for
+    job_id : (for backend) the ID of the job to which this message pertains to
+    doc_id : (for backend) the ID of the document to which this message pertains to
+*/ 
+
+message LeaderToWorkerMessage {
     int32 src_id = 1;
     int32 dst_id = 2;
     int32 job_id = 3;
-    string content = 4;
+    int32 doc_id = 4;
+    string content = 5;
 }
 
 message TaskRequest {
@@ -97,10 +108,18 @@ message Assignment {
     AgentState agent_state = 2;
 }
 
+/* 
+    when a leader assigns a task to a worker, the task must contain:
+    src_id : (for LLM) the ID of the agent who has written this message
+    content: (for LLM) the message body itself 
+    job_id : (for backend) the ID of the job to which this message pertains to
+    doc_id : (for backend) the ID of the document to which this message pertains to
+*/
 message Task {
     int32 src_id = 1;
     int32 job_id = 2;
-    string content = 3;
+    int32 doc_id = 3;
+    string content = 4;
 }
 
 message JobRequest {
@@ -109,11 +128,22 @@ message JobRequest {
 }
 
 message AgentResult {
-    int32 hashed_number = 1;
+    double hashed_number = 1;
 }
 
 // JobResponse is what the leader sends back to a client
 message JobResponse {
     int32 status = 1;
-    map<int32, AgentResult> response = 2;
+    int32 ticket = 2;
+    int32 n_docs = 3;
+    map<int32, AgentResult> response = 4; // key: Document ID | value: agent's hash of found ans
+}
+
+
+/*
+    when a client requests job completion status from the leader, the request must contain:
+    ticket : the job ID of the job whose completion the client is interested in knowing more about
+*/
+message JobCompletionRequest {
+    int32 ticket = 1;
 }

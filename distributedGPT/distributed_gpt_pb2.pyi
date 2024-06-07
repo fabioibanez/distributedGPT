@@ -17,17 +17,19 @@ class GoodbyeMessage(_message.Message):
     id: int
     def __init__(self, id: _Optional[int] = ...) -> None: ...
 
-class AgentMessage(_message.Message):
-    __slots__ = ("src_id", "dst_id", "job_id", "content")
+class LeaderToWorkerMessage(_message.Message):
+    __slots__ = ("src_id", "dst_id", "job_id", "doc_id", "content")
     SRC_ID_FIELD_NUMBER: _ClassVar[int]
     DST_ID_FIELD_NUMBER: _ClassVar[int]
     JOB_ID_FIELD_NUMBER: _ClassVar[int]
+    DOC_ID_FIELD_NUMBER: _ClassVar[int]
     CONTENT_FIELD_NUMBER: _ClassVar[int]
     src_id: int
     dst_id: int
     job_id: int
+    doc_id: int
     content: str
-    def __init__(self, src_id: _Optional[int] = ..., dst_id: _Optional[int] = ..., job_id: _Optional[int] = ..., content: _Optional[str] = ...) -> None: ...
+    def __init__(self, src_id: _Optional[int] = ..., dst_id: _Optional[int] = ..., job_id: _Optional[int] = ..., doc_id: _Optional[int] = ..., content: _Optional[str] = ...) -> None: ...
 
 class TaskRequest(_message.Message):
     __slots__ = ("id",)
@@ -149,14 +151,16 @@ class Assignment(_message.Message):
     def __init__(self, process_id: _Optional[int] = ..., agent_state: _Optional[_Union[AgentState, _Mapping]] = ...) -> None: ...
 
 class Task(_message.Message):
-    __slots__ = ("src_id", "job_id", "content")
+    __slots__ = ("src_id", "job_id", "doc_id", "content")
     SRC_ID_FIELD_NUMBER: _ClassVar[int]
     JOB_ID_FIELD_NUMBER: _ClassVar[int]
+    DOC_ID_FIELD_NUMBER: _ClassVar[int]
     CONTENT_FIELD_NUMBER: _ClassVar[int]
     src_id: int
     job_id: int
+    doc_id: int
     content: str
-    def __init__(self, src_id: _Optional[int] = ..., job_id: _Optional[int] = ..., content: _Optional[str] = ...) -> None: ...
+    def __init__(self, src_id: _Optional[int] = ..., job_id: _Optional[int] = ..., doc_id: _Optional[int] = ..., content: _Optional[str] = ...) -> None: ...
 
 class JobRequest(_message.Message):
     __slots__ = ("content", "files")
@@ -176,11 +180,11 @@ class JobRequest(_message.Message):
 class AgentResult(_message.Message):
     __slots__ = ("hashed_number",)
     HASHED_NUMBER_FIELD_NUMBER: _ClassVar[int]
-    hashed_number: int
-    def __init__(self, hashed_number: _Optional[int] = ...) -> None: ...
+    hashed_number: float
+    def __init__(self, hashed_number: _Optional[float] = ...) -> None: ...
 
 class JobResponse(_message.Message):
-    __slots__ = ("status", "response")
+    __slots__ = ("status", "ticket", "n_docs", "response")
     class ResponseEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -189,7 +193,17 @@ class JobResponse(_message.Message):
         value: AgentResult
         def __init__(self, key: _Optional[int] = ..., value: _Optional[_Union[AgentResult, _Mapping]] = ...) -> None: ...
     STATUS_FIELD_NUMBER: _ClassVar[int]
+    TICKET_FIELD_NUMBER: _ClassVar[int]
+    N_DOCS_FIELD_NUMBER: _ClassVar[int]
     RESPONSE_FIELD_NUMBER: _ClassVar[int]
     status: int
+    ticket: int
+    n_docs: int
     response: _containers.MessageMap[int, AgentResult]
-    def __init__(self, status: _Optional[int] = ..., response: _Optional[_Mapping[int, AgentResult]] = ...) -> None: ...
+    def __init__(self, status: _Optional[int] = ..., ticket: _Optional[int] = ..., n_docs: _Optional[int] = ..., response: _Optional[_Mapping[int, AgentResult]] = ...) -> None: ...
+
+class JobCompletionRequest(_message.Message):
+    __slots__ = ("ticket",)
+    TICKET_FIELD_NUMBER: _ClassVar[int]
+    ticket: int
+    def __init__(self, ticket: _Optional[int] = ...) -> None: ...

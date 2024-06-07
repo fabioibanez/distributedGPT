@@ -6,8 +6,8 @@ from Custodian import MultiAgentCustodian
 from queue import Queue
 from messages import AgentMessage
 
-from utils.llmAPI import gpt4Llm
-from utils.constants import *
+from llmAPI import gpt4Llm
+from d_utils.constants import *
 
 from memgpt.models.chat_completion_response import ChatCompletionResponse
 
@@ -15,8 +15,9 @@ import json
 
 import grpc
 import distributed_gpt_pb2_grpc
-import distributed_gpt_pb2
-from threading import Lock, Condition
+from threading import Lock
+
+import distributed_gpt_pb2 as proto 
 
 Status = dict
 ProcessID = int
@@ -34,13 +35,15 @@ class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
     def __init__(self, assoc_interface: PoolRPCInterface):
         super().__init__()
         self.assoc_interface = assoc_interface
+        self.llm_connection = gpt4Llm()
+
         self.proc_id_counter = 0
         self.job_id_counter = 0
-        self.job_id_to_response : Dict[int, distributed_gpt_pb2.JobResponse] = {}
-        self.llm_connection = gpt4Llm()
+        self.job_id_to_response : Dict[int, proto.JobResponse] = {}
+
         self.persona_dict: Dict[int, str] = dict()
 
-    def submitJob(self, request: distributed_gpt_pb2.JobRequest, context):
+    def submitJob(self, request: proto.JobRequest, context):
         """
         Returns a ticket to the job requestor so that they can query the state of a job
         """
@@ -56,18 +59,24 @@ class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
         log(f"(SERVER) Sending the following document dictionary to GPT...", Logging.INFO.value)
         log(json.dumps(document_dict, indent=1), Logging.DATA.value)
 
-        res : ChatCompletionResponse = self.llm_connection.make_request(persona=system_msg, prompt=prompt, model='gpt-4o')
-
+        res : ChatCompletionResponse = self.llm_connection.make_request(
+            persona=system_msg, prompt=prompt, model='gpt-4o')
         document_to_agent_mapping = res.content
+        document_to_agent_mapping = json.loads(document_to_agent_mapping)
+        # document_to_agent_mapping = {0: 1}
+        n_docs = len(document_to_agent_mapping)
         log(f"(SERVER) GPT sent me corresponding mapping:", Logging.INFO.value)
         log(document_to_agent_mapping, Logging.DATA.value)
-
-        # add request to job queue
+        
+        # add request to job queue 
         self.assoc_interface.jobs_queue.put((self.job_id_counter, document_to_agent_mapping, request))
         self.assoc_interface.dispatch_job()
         
+        jresponse = proto.JobResponse(
+            status=JobStatus.PENDING.value, ticket=self.job_id_counter, n_docs=n_docs, response=None)
+        self.job_id_to_response[self.job_id_counter] = jresponse
         self.job_id_counter += 1
-        return distributed_gpt_pb2.JobResponse(status=JobStatus.PENDING.value, response=None)
+        return jresponse
         
     def getJob(self, request, context):
         """
@@ -77,19 +86,16 @@ class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
             f"(SERVER) Got a job status request from client with identity {context.peer()}!", 
             Logging.INFO.value
         )
-
-        if (request.ticket not in self.job_id_to_response):
-            return distributed_gpt_pb2.JobResponse(status=JobStatus.FAIL, response=None)
         
-        # lazily update the job status if all of the workers have responded
-        if (None not in self.job_id_to_response[request.ticket].values()):
-            self.job_request_status[request.ticket] = JobStatus.COMPLETED.value
-            response = self.job_id_to_response[request.ticket]
-        else:
-            self.job_request_status[request.ticket] = JobStatus.PENDING.value
-            response = None
-                
-        return distributed_gpt_pb2.JobResponse(status=self.job_id_to_response[request.ticket].status, response=response)
+        if (request.ticket not in self.job_id_to_response):
+            return proto.JobResponse(status=JobStatus.FAIL, response=None)
+        
+        _map = self.job_id_to_response[request.ticket]
+        completed = len(_map.response) == _map.n_docs
+        
+        _map.status = JobStatus.COMPLETED.value if completed else JobStatus.PENDING.value
+
+        return _map
 
     def giveAgentAssignment(self, request, context):
         agent_state = self.assoc_interface.get_agent_state(self.proc_id_counter)
@@ -102,7 +108,7 @@ class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
         args.pop("created_at", None) 
         for function in args['state']['functions']:
             for property in function['parameters']['properties']:
-                function['parameters']['properties'][property] = distributed_gpt_pb2.PropertyDescription(**function['parameters']['properties'][property])
+                function['parameters']['properties'][property] = proto.PropertyDescription(**function['parameters']['properties'][property])
                 
         self.assoc_interface.lock.acquire()
         self.proc_id_counter += 1
@@ -115,35 +121,36 @@ class LeaderServicer(distributed_gpt_pb2_grpc.LeaderServicer):
             Logging.INFO.value
         )
 
-        return distributed_gpt_pb2.Assignment(process_id=self.proc_id_counter, agent_state=distributed_gpt_pb2.AgentState(**args))
+        return proto.Assignment(process_id=self.proc_id_counter, agent_state=proto.AgentState(**args))
       
-    def giveAgentMessage(self, request: distributed_gpt_pb2.TaskRequest, context):
+    def giveAgentMessage(self, request: proto.TaskRequest, context):
         # pluck the message from the queue
         log(f'(SERVER) Plucking a message out to give to agent {request.id}', Logging.INFO.value)
         agent_message = self.assoc_interface.get_outgoing(request.id)
-        return distributed_gpt_pb2.Task(src_id=agent_message.src_id, content=agent_message.content)
+        task = proto.Task(
+            src_id  = agent_message.src_id, content = agent_message.content,
+            job_id  = agent_message.job_id, doc_id  = agent_message.doc_id
+        )
+        return task
     
-    def processAgentMessage(self, request: distributed_gpt_pb2.AgentMessage, context):
+    def processAgentMessage(self, request: proto.LeaderToWorkerMessage, context):
 
         log(f"(SERVER) Got a message from agent {request.src_id}", Logging.INFO.value)
         # peek inside the message
         intended_msg_recipient = request.dst_id
         if (intended_msg_recipient == AgentType.LEADER.value):
-            print("hi")
+            _map = self.job_id_to_response[request.job_id]
+            _map.response[request.doc_id].hashed_number = float(request.content)
+
+        print(_map)
         
-        # this message is a response to the leader's dispatch of a task
-        # if (request.dst_id == 0):
-        #     map = self.job_id_to_response[request.job_id]
-        #     map[request.src_id] = request.content
-        # else: # this message is intended for another worker
-        #     self.assoc_interface.push_message(request)
         self.assoc_interface.push_message(request)
 
-        return distributed_gpt_pb2.Status(content="OK!")
+        return proto.Status(content="OK!")
     
-    def sayGoodbye(self, request: distributed_gpt_pb2.GoodbyeMessage, context):
+    def sayGoodbye(self, request: proto.GoodbyeMessage, context):
        self.assoc_interface.ack_goodbye(request.id) 
-       return distributed_gpt_pb2.Status(content="OK!")
+       return proto.Status(content="OK!")
 
 
 class PoolRPCInterface(PoolInterface):
@@ -157,9 +164,9 @@ class PoolRPCInterface(PoolInterface):
         self.conn_addr = f"{self.addr}:{self.port}"
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         # messages from agent to leader
-        self.agent_msg_queue: Queue[distributed_gpt_pb2.AgentMessage] = Queue(maxsize=100)
+        self.agent_msg_queue: Queue[proto.LeaderToWorkerMessage] = Queue(maxsize=100)
         # Queue<mapping, JobRequest>
-        self.jobs_queue : Queue[Tuple[int, dict, distributed_gpt_pb2.JobRequest]] = Queue(maxsize=100)
+        self.jobs_queue : Queue[Tuple[int, dict, proto.JobRequest]] = Queue(maxsize=100)
         self.goodbyes : Queue[int] = Queue(maxsize=100)
         for i in range(1, N+1):
             self.goodbyes.put(i)
@@ -169,7 +176,7 @@ class PoolRPCInterface(PoolInterface):
         }
 
         # leader to agent message queue
-        self.out_msg_queue: Dict[ProcessID, Queue[distributed_gpt_pb2.AgentMessage]] \
+        self.out_msg_queue: Dict[ProcessID, Queue[proto.LeaderToWorkerMessage]] \
             = {i: Queue(maxsize=100) for i in range(1, self.N + 1)}
         
         try:
@@ -197,10 +204,7 @@ class PoolRPCInterface(PoolInterface):
         return {}
     
     def _send_message(self, msg: AgentMessage) -> Status:
-        msg_obj = distributed_gpt_pb2.AgentMessage(
-            src_id = msg.src_id, dst_id=msg.dst_id, job_id=msg.job_id, content=msg.content
-        )
-        self.out_msg_queue[msg.dst_id].put(msg_obj)
+        self.out_msg_queue[msg.dst_id].put(msg)
 
         log(
             f"(SERVER) Put a msg from agent {msg.src_id} addressed to agent {msg.dst_id} in queue!", 
@@ -222,17 +226,19 @@ class PoolRPCInterface(PoolInterface):
     ##### PoolRPCInterface specific methods #####
     
     def dispatch_job(self):
-        job : Tuple[int, dict, distributed_gpt_pb2.JobRequest] = self.jobs_queue.get()
+        job : Tuple[int, dict, proto.JobRequest] = self.jobs_queue.get()
         job_id = job[0]
-        document_to_agent_mapping = json.loads(job[1])
+        # document_to_agent_mapping = json.loads(job[1])
+        document_to_agent_mapping = job[1]
+        
         job_request = job[2]
         # for each document(k) to agent(v) mapping
         for k,v in document_to_agent_mapping.items():
             k = int(k)
             v = int(v)
             content = LEADER_TO_WORKER_PROLOGUE + job_request.files[k]
-            agent_message = distributed_gpt_pb2.AgentMessage(
-                src_id=0, dst_id=v, job_id=job_id, content=content
+            agent_message = proto.LeaderToWorkerMessage(
+                src_id=0, dst_id=v, job_id=job_id, doc_id=k, content=content
             )
             self._send_message(agent_message)
 
@@ -244,7 +250,7 @@ class PoolRPCInterface(PoolInterface):
         log("(SERVER) Closing server!", Logging.IMPORTANT, attrs = ['bold'])
         self.server.stop(grace=10)
     
-    def get_outgoing(self, proc_id: ProcessID) -> distributed_gpt_pb2.AgentMessage:
+    def get_outgoing(self, proc_id: ProcessID) -> proto.LeaderToWorkerMessage:
         
         msg_available = False
         while self.out_msg_queue[proc_id].empty():
@@ -270,7 +276,7 @@ class PoolRPCInterface(PoolInterface):
     
         return msg
     
-    def push_message(self, msg: distributed_gpt_pb2.AgentMessage):
+    def push_message(self, msg: proto.LeaderToWorkerMessage):
         self.agent_msg_queue.put(msg)
     
     def ack_goodbye(self, process_id: ProcessID):

@@ -70,8 +70,8 @@ class pythonDocumentGenerator(documentGenerator):
         
 if __name__ == "__main__":
     generator = pythonDocumentGenerator(SYSTEM_PERSONA)
-    revealing_context = """The value you are looking for is less than 1 but greater than 0"""
-    for i in range(10):
+    revealing_context = """The pre-hash value is less than 1 but greater than 0"""
+    for i in range(20):
       unhashed_value = random.random()
       prompt = pythonDocumentGenerator.pythonDocumentPrompt(unhashed_value, revealing_context)
       print(generator.generate_document(prompt))

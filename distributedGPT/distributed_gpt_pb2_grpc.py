@@ -31,7 +31,13 @@ if _version_not_supported:
 
 
 class LeaderStub(object):
-    """Missing associated documentation comment in .proto file."""
+    """
+    NAMING:
+    Client : a client is a human user who submits jobs (in this case documents) to the system
+    Agent  : a LLM-using entity that responds to requests given to it by other agents or a human
+    Worker : a agent that executes tasks specified by a job
+    Leader : a special agent that interfaces with client, & orchestrates communication btwn workers
+    """
 
     def __init__(self, channel):
         """Constructor.
@@ -42,6 +48,11 @@ class LeaderStub(object):
         self.submitJob = channel.unary_unary(
                 '/Leader/submitJob',
                 request_serializer=distributed__gpt__pb2.JobRequest.SerializeToString,
+                response_deserializer=distributed__gpt__pb2.JobResponse.FromString,
+                _registered_method=True)
+        self.getJob = channel.unary_unary(
+                '/Leader/getJob',
+                request_serializer=distributed__gpt__pb2.JobCompletionRequest.SerializeToString,
                 response_deserializer=distributed__gpt__pb2.JobResponse.FromString,
                 _registered_method=True)
         self.giveAgentAssignment = channel.unary_unary(
@@ -56,7 +67,7 @@ class LeaderStub(object):
                 _registered_method=True)
         self.processAgentMessage = channel.unary_unary(
                 '/Leader/processAgentMessage',
-                request_serializer=distributed__gpt__pb2.AgentMessage.SerializeToString,
+                request_serializer=distributed__gpt__pb2.LeaderToWorkerMessage.SerializeToString,
                 response_deserializer=distributed__gpt__pb2.Status.FromString,
                 _registered_method=True)
         self.sayGoodbye = channel.unary_unary(
@@ -67,9 +78,21 @@ class LeaderStub(object):
 
 
 class LeaderServicer(object):
-    """Missing associated documentation comment in .proto file."""
+    """
+    NAMING:
+    Client : a client is a human user who submits jobs (in this case documents) to the system
+    Agent  : a LLM-using entity that responds to requests given to it by other agents or a human
+    Worker : a agent that executes tasks specified by a job
+    Leader : a special agent that interfaces with client, & orchestrates communication btwn workers
+    """
 
     def submitJob(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def getJob(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -107,6 +130,11 @@ def add_LeaderServicer_to_server(servicer, server):
                     request_deserializer=distributed__gpt__pb2.JobRequest.FromString,
                     response_serializer=distributed__gpt__pb2.JobResponse.SerializeToString,
             ),
+            'getJob': grpc.unary_unary_rpc_method_handler(
+                    servicer.getJob,
+                    request_deserializer=distributed__gpt__pb2.JobCompletionRequest.FromString,
+                    response_serializer=distributed__gpt__pb2.JobResponse.SerializeToString,
+            ),
             'giveAgentAssignment': grpc.unary_unary_rpc_method_handler(
                     servicer.giveAgentAssignment,
                     request_deserializer=distributed__gpt__pb2.AssignmentRequest.FromString,
@@ -119,7 +147,7 @@ def add_LeaderServicer_to_server(servicer, server):
             ),
             'processAgentMessage': grpc.unary_unary_rpc_method_handler(
                     servicer.processAgentMessage,
-                    request_deserializer=distributed__gpt__pb2.AgentMessage.FromString,
+                    request_deserializer=distributed__gpt__pb2.LeaderToWorkerMessage.FromString,
                     response_serializer=distributed__gpt__pb2.Status.SerializeToString,
             ),
             'sayGoodbye': grpc.unary_unary_rpc_method_handler(
@@ -135,7 +163,13 @@ def add_LeaderServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class Leader(object):
-    """Missing associated documentation comment in .proto file."""
+    """
+    NAMING:
+    Client : a client is a human user who submits jobs (in this case documents) to the system
+    Agent  : a LLM-using entity that responds to requests given to it by other agents or a human
+    Worker : a agent that executes tasks specified by a job
+    Leader : a special agent that interfaces with client, & orchestrates communication btwn workers
+    """
 
     @staticmethod
     def submitJob(request,
@@ -153,6 +187,33 @@ class Leader(object):
             target,
             '/Leader/submitJob',
             distributed__gpt__pb2.JobRequest.SerializeToString,
+            distributed__gpt__pb2.JobResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getJob(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/Leader/getJob',
+            distributed__gpt__pb2.JobCompletionRequest.SerializeToString,
             distributed__gpt__pb2.JobResponse.FromString,
             options,
             channel_credentials,
@@ -233,7 +294,7 @@ class Leader(object):
             request,
             target,
             '/Leader/processAgentMessage',
-            distributed__gpt__pb2.AgentMessage.SerializeToString,
+            distributed__gpt__pb2.LeaderToWorkerMessage.SerializeToString,
             distributed__gpt__pb2.Status.FromString,
             options,
             channel_credentials,

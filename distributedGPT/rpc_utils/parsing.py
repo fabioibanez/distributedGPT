@@ -14,5 +14,5 @@ def parse_assignment(assignment: Assignment) -> Tuple[int, AgentState]:
     return process_id, AgentState(**agent_state)
     
 def parse_message(task: Task) -> dict:
-    message = MessageToDict(task, preserving_proto_field_name=True)
+    message = MessageToDict(task, preserving_proto_field_name=True, always_print_fields_with_no_presence=True)
     return message

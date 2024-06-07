@@ -65,7 +65,7 @@ class xmlDocumentGenerator(documentGenerator):
 
 if __name__ == "__main__":
     generator = xmlDocumentGenerator(SYSTEM_PERSONA)
-    for i in range(5):
+    for i in range(20):
         random_attribute = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
         random_tag = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
         revealing_context = f"""the {random_attribute} attribute of the <{random_tag}> tag contains the pre-hash value."""
